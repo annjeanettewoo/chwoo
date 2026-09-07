@@ -1,0 +1,636 @@
+/* ========================================
+   CHWOO COLOUR PALETTE
+
+   Powder Blue:     #BED1E1
+   Chocolate Brown: #4B2E1F
+   Butter Yellow:   #FFF3C2
+   ======================================== */
+
+
+/* Remove browser default spacing */
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+
+    font-family: Arial, Helvetica, sans-serif;
+
+    color: #4B2E1F;
+
+    background-color: #ffffff;
+}
+
+
+
+/* ========================================
+   ANNOUNCEMENT BAR
+   ======================================== */
+
+.announcement-bar {
+    height: 42px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background-color: #BED1E1;
+
+    color: #4B2E1F;
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+    letter-spacing: 1px;
+}
+
+
+
+/* ========================================
+   HERO
+   ======================================== */
+
+.hero {
+    position: relative;
+
+    min-height: calc(100vh - 42px);
+
+    background-image:
+        linear-gradient(
+            rgba(0, 0, 0, 0.08),
+            rgba(0, 0, 0, 0.15)
+        ),
+        url("../images/hero.png");
+
+    background-size: cover;
+
+    background-position: center;
+}
+
+
+
+/* ========================================
+   NAVIGATION
+   ======================================== */
+
+.navbar {
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    padding: 24px 35px;
+
+    position: absolute;
+
+    top: 0;
+    left: 0;
+
+    z-index: 10;
+}
+
+
+
+.logo-link {
+    display: block;
+
+    margin-right: 55px;
+}
+
+
+
+.logo {
+    width: 105px;
+
+    display: block;
+}
+
+
+
+.main-nav {
+    display: flex;
+
+    gap: 35px;
+}
+
+
+
+.main-nav a,
+.nav-tools a {
+    color: #4B2E1F;
+
+    text-decoration: none;
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+    letter-spacing: 0.5px;
+
+    position: relative;
+}
+
+
+
+/* Navigation underline animation */
+
+.main-nav a::after {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+
+    bottom: -6px;
+
+    width: 0;
+
+    height: 2px;
+
+    background-color: #4B2E1F;
+
+    transition: width 0.3s;
+}
+
+
+
+.main-nav a:hover::after {
+    width: 100%;
+}
+
+
+
+.nav-tools {
+    margin-left: auto;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 24px;
+
+    font-size: 13px;
+
+    font-weight: bold;
+}
+
+
+
+.nav-tools a:hover {
+    opacity: 0.6;
+}
+
+
+
+/* ========================================
+   HERO TEXT
+   ======================================== */
+
+.hero-content {
+    position: absolute;
+
+    right: 6%;
+
+    bottom: 13%;
+
+    width: 520px;
+
+    color: #FFF3C2;
+
+    text-align: left;
+}
+
+
+
+.hero-small {
+    margin-bottom: 12px;
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+    letter-spacing: 3px;
+}
+
+
+
+.hero-content h1 {
+    margin: 0;
+
+    font-size: clamp(55px, 6vw, 95px);
+
+    line-height: 0.9;
+
+    letter-spacing: -4px;
+
+    font-weight: 700;
+}
+
+
+
+.hero-description {
+    margin-top: 25px;
+
+    margin-bottom: 28px;
+
+    font-size: 17px;
+
+    line-height: 1.5;
+}
+
+
+
+.shop-button {
+    display: inline-block;
+
+    padding: 14px 27px;
+
+    background-color: #FFF3C2;
+
+    color: #4B2E1F;
+
+    text-decoration: none;
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+    letter-spacing: 1px;
+
+    border: 2px solid #FFF3C2;
+
+    transition: 0.3s;
+}
+
+
+
+.shop-button:hover {
+    background-color: #4B2E1F;
+
+    border-color: #4B2E1F;
+
+    color: #FFF3C2;
+}
+
+
+
+/* ========================================
+   SCROLL INDICATOR
+   ======================================== */
+
+.scroll-indicator {
+    position: absolute;
+
+    left: 50%;
+
+    bottom: 22px;
+
+    transform: translateX(-50%);
+
+    color: #FFF3C2;
+
+    text-decoration: none;
+
+    font-size: 30px;
+}
+
+
+
+/* ========================================
+   NEW IN
+   ======================================== */
+
+.new-in {
+    padding: 90px 5% 100px;
+
+    background-color: white;
+
+    text-align: center;
+}
+
+
+
+.section-heading p {
+    margin: 0;
+
+    font-size: 12px;
+
+    letter-spacing: 3px;
+
+    font-weight: bold;
+}
+
+
+
+.section-heading h2 {
+    margin-top: 10px;
+
+    margin-bottom: 50px;
+
+    font-size: 42px;
+
+    font-weight: normal;
+}
+
+
+
+.product-grid {
+    display: grid;
+
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 20px;
+
+    text-align: left;
+}
+
+
+
+.product-card img {
+    width: 100%;
+
+    display: block;
+
+    aspect-ratio: 3 / 4;
+
+    object-fit: cover;
+
+    transition: transform 0.4s;
+}
+
+
+
+.product-card img:hover {
+    transform: scale(1.02);
+}
+
+
+
+.product-card h3 {
+    margin-top: 15px;
+
+    margin-bottom: 7px;
+
+    font-size: 15px;
+
+    font-weight: normal;
+}
+
+
+
+.price {
+    margin: 0;
+
+    font-size: 13px;
+}
+
+
+
+.view-all {
+    display: inline-block;
+
+    margin-top: 50px;
+
+    color: #4B2E1F;
+
+    text-decoration: none;
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+    border-bottom: 1px solid #4B2E1F;
+
+    padding-bottom: 5px;
+}
+
+
+
+/* ========================================
+   BRAND INTRODUCTION
+   ======================================== */
+
+.brand-section {
+    padding: 130px 15%;
+
+    text-align: center;
+
+    background-color: #FFF3C2;
+}
+
+
+
+.brand-small {
+    font-size: 12px;
+
+    font-weight: bold;
+
+    letter-spacing: 3px;
+}
+
+
+
+.brand-section h2 {
+    margin: 20px 0;
+
+    font-size: clamp(45px, 6vw, 85px);
+
+    line-height: 1;
+
+    font-weight: normal;
+}
+
+
+
+.brand-section > p:not(.brand-small) {
+    max-width: 520px;
+
+    margin: 30px auto;
+
+    font-size: 16px;
+
+    line-height: 1.8;
+}
+
+
+
+.brand-section a {
+    color: #4B2E1F;
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+    text-decoration: none;
+
+    border-bottom: 1px solid #4B2E1F;
+
+    padding-bottom: 4px;
+}
+
+
+
+/* ========================================
+   FOOTER
+   ======================================== */
+
+footer {
+    padding: 60px 6% 35px;
+
+    background-color: #4B2E1F;
+
+    color: #FFF3C2;
+
+    text-align: center;
+}
+
+
+
+.footer-logo {
+    font-size: 40px;
+
+    font-weight: bold;
+
+    margin-bottom: 30px;
+}
+
+
+
+.footer-links {
+    display: flex;
+
+    justify-content: center;
+
+    gap: 30px;
+
+    margin-bottom: 40px;
+}
+
+
+
+.footer-links a {
+    color: #FFF3C2;
+
+    text-decoration: none;
+
+    font-size: 13px;
+}
+
+
+
+.footer-links a:hover {
+    text-decoration: underline;
+}
+
+
+
+footer p {
+    margin: 0;
+
+    font-size: 11px;
+}
+
+
+
+/* ========================================
+   RESPONSIVE LAYOUT
+   ======================================== */
+
+@media (max-width: 1000px) {
+
+    .navbar {
+        padding: 20px;
+    }
+
+
+    .logo {
+        width: 85px;
+    }
+
+
+    .main-nav {
+        gap: 18px;
+    }
+
+
+    .nav-tools span,
+    .nav-tools a:not(:last-child) {
+        display: none;
+    }
+
+
+    .hero-content {
+        right: 5%;
+
+        width: 450px;
+    }
+
+
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr);
+
+        gap: 35px 15px;
+    }
+
+}
+
+
+
+@media (max-width: 700px) {
+
+    .announcement-bar {
+        font-size: 10px;
+    }
+
+
+    .navbar {
+        align-items: flex-start;
+    }
+
+
+    .main-nav {
+        display: none;
+    }
+
+
+    .hero-content {
+        right: 7%;
+
+        bottom: 12%;
+
+        width: 86%;
+    }
+
+
+    .hero-content h1 {
+        font-size: 55px;
+
+        letter-spacing: -2px;
+    }
+
+
+    .product-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+
+    .section-heading h2 {
+        font-size: 32px;
+    }
+
+
+    .footer-links {
+        flex-direction: column;
+
+        gap: 15px;
+    }
+
+}
