@@ -1,0 +1,329 @@
+/* ========================================
+   SHOP PAGE
+   ======================================== */
+
+.shop-page {
+    width: 100%;
+
+    padding: 35px 5% 100px;
+
+    background-color: var(--white);
+}
+
+
+/* ========================================
+   BREADCRUMB
+   ======================================== */
+
+.breadcrumb {
+    display: flex;
+
+    gap: 8px;
+
+    margin-bottom: 45px;
+
+    font-size: 12px;
+}
+
+
+.breadcrumb a {
+    color: var(--brown);
+
+    text-decoration: none;
+}
+
+
+.breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+
+/* ========================================
+   SHOP HEADING
+   ======================================== */
+
+.shop-heading {
+    margin-bottom: 55px;
+}
+
+
+.shop-small {
+    margin: 0 0 10px;
+
+    font-size: 11px;
+
+    font-weight: bold;
+
+    letter-spacing: 3px;
+}
+
+
+.shop-heading h1 {
+    margin: 0;
+
+    font-size: 60px;
+
+    font-weight: normal;
+
+    letter-spacing: -2px;
+}
+
+
+.shop-description {
+    margin-top: 12px;
+
+    font-size: 15px;
+}
+
+
+/* ========================================
+   SHOP CONTROLS
+   ======================================== */
+
+.shop-controls {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    margin-bottom: 35px;
+
+    padding-bottom: 18px;
+
+    border-bottom: 1px solid var(--brown);
+}
+
+
+/* Categories */
+
+.shop-categories {
+    display: flex;
+
+    gap: 28px;
+}
+
+
+.category-button {
+    padding: 8px 12px;
+
+    border: none;
+
+    border-radius: 20px;
+
+    background-color: transparent;
+
+    color: var(--brown);
+
+    font-family: Arial, Helvetica, sans-serif;
+
+    font-size: 12px;
+
+    font-weight: bold;
+
+    letter-spacing: 1px;
+
+    cursor: pointer;
+
+    transition: background-color 0.3s;
+}
+
+
+.category-button.active {
+    background-color: var(--yellow);
+}
+
+
+.category-button:hover {
+    background-color: var(--blue);
+}
+
+
+/* Sort */
+
+.shop-sort {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    font-size: 11px;
+
+    font-weight: bold;
+}
+
+
+.shop-sort select {
+    padding: 6px 8px;
+
+    border: 1px solid var(--brown);
+
+    background-color: var(--white);
+
+    color: var(--brown);
+
+    font-family: Arial, Helvetica, sans-serif;
+
+    font-size: 11px;
+
+    cursor: pointer;
+}
+
+
+/* ========================================
+   PRODUCT GRID
+   ======================================== */
+
+.shop-product-grid {
+    display: grid;
+
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 45px 20px;
+
+    width: 100%;
+}
+
+
+.shop-product-grid .product-card {
+    width: 100%;
+
+    min-width: 0;
+}
+
+
+.shop-product-grid .product-card img {
+    height: 400px;
+
+    object-fit: contain;
+}
+
+
+.shop-product-grid .product-card:hover img {
+    transform: scale(1.03);
+}
+
+
+.shop-product-grid .product-card h3 {
+    margin: 14px 0 6px;
+
+    font-size: 14px;
+
+    font-weight: normal;
+}
+
+
+.shop-product-grid .product-card h3 a {
+    color: var(--brown);
+
+    text-decoration: none;
+}
+
+
+.shop-product-grid .product-card h3 a:hover {
+    text-decoration: underline;
+}
+
+
+.shop-product-grid .price {
+    font-size: 12px;
+}
+
+
+/* ========================================
+   PAGINATION
+   ======================================== */
+
+.pagination {
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 18px;
+
+    margin-top: 75px;
+}
+
+
+.pagination a {
+    color: var(--brown);
+
+    text-decoration: none;
+
+    font-size: 13px;
+}
+
+
+.pagination a:hover {
+    opacity: 0.6;
+}
+
+
+.pagination .current-page {
+    font-weight: bold;
+
+    border-bottom: 1px solid var(--brown);
+
+    padding-bottom: 3px;
+}
+
+
+/* ========================================
+   RESPONSIVE SHOP
+   ======================================== */
+
+@media (max-width: 1000px) {
+
+    .shop-product-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .shop-page {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+
+    .shop-heading h1 {
+        font-size: 48px;
+    }
+
+
+    .shop-controls {
+        flex-direction: column;
+
+        align-items: flex-start;
+
+        gap: 25px;
+    }
+
+
+    .shop-categories {
+        width: 100%;
+
+        gap: 10px;
+
+        flex-wrap: wrap;
+    }
+
+
+    .shop-product-grid {
+        grid-template-columns: repeat(2, 1fr);
+
+        gap: 30px 12px;
+    }
+
+
+    .shop-product-grid .product-card img {
+        height: 260px;
+    }
+
+}

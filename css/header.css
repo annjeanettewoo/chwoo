@@ -1,0 +1,226 @@
+/* ========================================
+   SITE HEADER
+   ======================================== */
+
+.site-header {
+    position: sticky;
+
+    top: 0;
+
+    z-index: 1000;
+
+    background-color: var(--white);
+
+    box-shadow: 0 1px 0 rgba(75, 46, 31, 0.12);
+}
+
+
+/* ========================================
+   ANNOUNCEMENT BAR
+   ======================================== */
+
+.announcement-bar {
+    height: 42px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background-color: var(--blue);
+
+    color: var(--brown);
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+    letter-spacing: 1px;
+}
+
+
+/* ========================================
+   NAVBAR
+   ======================================== */
+
+.navbar {
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    padding: 24px 35px;
+
+    background-color: var(--white);
+}
+
+
+.logo-link {
+    display: block;
+
+    margin-right: 55px;
+}
+
+
+.logo {
+    width: 105px;
+
+    display: block;
+}
+
+
+.main-nav {
+    display: flex;
+
+    gap: 35px;
+}
+
+
+.main-nav a,
+.nav-tools a {
+    color: var(--brown);
+
+    text-decoration: none;
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+    letter-spacing: 0.5px;
+
+    position: relative;
+}
+
+
+/* Underline */
+
+.main-nav a::after {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    bottom: -6px;
+
+    width: 0;
+    height: 2px;
+
+    background-color: var(--brown);
+
+    transition: width 0.3s;
+}
+
+
+.main-nav a:hover::after,
+.main-nav a.active::after {
+    width: 100%;
+}
+
+
+/* Right navigation */
+
+.nav-tools {
+    margin-left: auto;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 24px;
+
+    font-size: 13px;
+
+    font-weight: bold;
+}
+
+
+.nav-tools a:hover {
+    opacity: 0.6;
+}
+
+
+/* ========================================
+   HOME PAGE NAVBAR OVER HERO
+   ======================================== */
+
+.home-page .site-header {
+    background-color: transparent;
+
+    box-shadow: none;
+}
+
+
+.home-page .navbar {
+    position: absolute;
+
+    top: 42px;
+    left: 0;
+
+    background-color: transparent;
+
+    transition:
+        background-color 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+
+/* White background appears on hover */
+
+.home-page .navbar:hover {
+    background-color: var(--warm-white);
+
+    box-shadow: 0 1px 0 rgba(75, 46, 31, 0.1);
+}
+
+
+/* ========================================
+   RESPONSIVE HEADER
+   ======================================== */
+
+@media (max-width: 1000px) {
+
+    .navbar {
+        padding: 20px;
+    }
+
+
+    .logo {
+        width: 85px;
+    }
+
+
+    .main-nav {
+        gap: 18px;
+    }
+
+
+    .nav-tools span,
+    .nav-tools a:not(:last-child) {
+        display: none;
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .announcement-bar {
+        padding-left: 10px;
+        padding-right: 10px;
+
+        font-size: 10px;
+
+        text-align: center;
+    }
+
+
+    .navbar {
+        align-items: flex-start;
+    }
+
+
+    .main-nav {
+        display: none;
+    }
+
+}

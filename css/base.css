@@ -1,0 +1,67 @@
+/* ========================================
+   CHWOO GLOBAL STYLES
+   ======================================== */
+
+:root {
+    --blue: #BED1E1;
+    --brown: #4B2E1F;
+    --yellow: #FFF3C2;
+    --white: #ffffff;
+    --warm-white: #fffdf6;
+}
+
+
+* {
+    box-sizing: border-box;
+}
+
+
+html {
+    scroll-behavior: smooth;
+}
+
+
+body {
+    margin: 0;
+
+    font-family: Arial, Helvetica, sans-serif;
+
+    color: var(--brown);
+
+    background-color: var(--white);
+}
+
+
+/* ========================================
+   SHARED PRODUCT STYLING
+   ======================================== */
+
+.product-card img {
+    width: 100%;
+
+    display: block;
+
+    transition: transform 0.35s;
+}
+
+
+.product-card img:hover {
+    transform: scale(1.02);
+}
+
+
+.product-card h3 {
+    margin-top: 15px;
+    margin-bottom: 7px;
+
+    font-size: 15px;
+
+    font-weight: normal;
+}
+
+
+.price {
+    margin: 0;
+
+    font-size: 13px;
+}
