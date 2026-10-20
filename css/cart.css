@@ -1,0 +1,46 @@
+/* Minimal session shopping bag — consistent with CHWOO Shop styling. */
+.bag-page .bag-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(270px, 1fr);
+    gap: 7%;
+    padding: 60px 0 100px;
+}
+.bag-page .bag-item {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 27px;
+    border-top: 1px solid #ddd1c9;
+    padding: 26px 0;
+}
+.bag-page .bag-item-image {
+    display: flex; align-items: center; justify-content: center;
+    width: 150px; height: 185px; background: #faf9f7; text-decoration: none;
+}
+.bag-page .bag-item-image img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.bag-page .bag-item-image span { font-size: 12px; letter-spacing: 2px; }
+.bag-page .bag-item-details { padding: 8px 0; }
+.bag-page .bag-item-details h2 { font-size: 18px; font-weight: 400; margin: 0 0 17px; }
+.bag-page .bag-item-details a { color: inherit; text-decoration: none; }
+.bag-page .bag-item-details p { margin: 0 0 11px; font-size: 13px; }
+.bag-page .bag-remove {
+    padding: 0; border: 0; background: transparent; color: #4b2e1f;
+    text-decoration: underline; font-size: 12px; cursor: pointer;
+}
+.bag-page .bag-summary { border-top: 1px solid #917064; padding-top: 22px; }
+.bag-page .bag-summary h2 { font-size: 22px; font-weight: 400; margin: 0 0 28px; }
+.bag-page .bag-total { display: flex; justify-content: space-between; gap: 15px; font-size: 14px; padding-bottom: 18px; border-bottom: 1px solid #ddd1c9; }
+.bag-page .bag-summary p { font-size: 13px; color: #75645d; line-height: 1.7; margin: 24px 0; }
+.bag-page .bag-shop-link {
+    display: inline-block; color: #4b2e1f; border-bottom: 1px solid #4b2e1f;
+    font-size: 13px; font-weight: 700; letter-spacing: .4px;
+    text-decoration: none; padding: 9px 0;
+}
+.bag-page .bag-empty { padding: 65px 0 140px; }
+.bag-page .bag-empty h2 { font-size: 28px; font-weight: 400; }
+.bag-page .bag-empty p { font-size: 14px; margin-bottom: 23px; }
+@media (max-width: 780px) {
+    .bag-page .bag-layout { grid-template-columns: 1fr; gap: 30px; }
+    .bag-page .bag-item { grid-template-columns: 110px 1fr; gap: 18px; }
+    .bag-page .bag-item-image { width: 110px; height: 140px; }
+    .bag-page .bag-summary { padding-bottom: 35px; }
+}
