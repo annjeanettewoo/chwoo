@@ -1,3 +1,37 @@
+<?php
+// CHWOO Homepage | IE4727 Base Version
+// Preserve the original CHWOO homepage design; only the four product cards load from MySQL.
+session_start();
+require_once __DIR__ . '/php/db.php';
+
+// Escape database text before displaying it in HTML.
+function e($value) {
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+// Keep the original homepage selection and order: products 1-4.
+// The full active catalogue remains available in php/shop.php.
+$sql = 'SELECT product_id, product_name, price, image_path
+        FROM products
+        WHERE is_active = 1
+        ORDER BY product_id ASC
+        LIMIT 4';
+
+$stmt = $conn->prepare($sql);
+$stmt->execute();
+$result = $stmt->get_result();
+$newArrivals = [];
+while ($product = $result->fetch_assoc()) {
+    $newArrivals[] = $product;
+}
+$stmt->close();
+
+// Use the same cart session as php/product.php and php/cart.php.
+$bagCount = 0;
+foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
+    $bagCount += (int)$item['quantity'];
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -11,11 +45,9 @@
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/home.css">
     <link rel="stylesheet" href="css/footer.css">
-    
 </head>
 
 <body class="home-page">
-
 
     <!-- ========================================
          SITE HEADER
@@ -28,20 +60,18 @@
             FREE STANDARD COURIER DELIVERY WITH SGD$80 SPENT
         </div>
 
-
         <!-- Navigation -->
         <nav class="navbar">
 
             <!-- Logo -->
-            <a href="index.html" class="logo-link">
+            <a href="index.php" class="logo-link">
                 <img src="images/chwoo-logo.png" alt="CHWOO Fashion Studio" class="logo">
             </a>
-
 
             <!-- Main Navigation -->
             <div class="main-nav">
 
-                <a href="newin.html">
+                <a href="php/newin.php">
                     NEW IN
                 </a>
 
@@ -60,9 +90,7 @@
                 <a href="about.html">
                     ABOUT
                 </a>
-
             </div>
-
 
             <!-- Right Navigation -->
             <div class="nav-tools">
@@ -79,24 +107,18 @@
                     ACCOUNT
                 </a>
 
-                <a href="cart.html">
-                    BAG <span>(0)</span>
+                <a href="php/cart.php">
+                    BAG <span>(<?= $bagCount ?>)</span>
                 </a>
-
             </div>
-
         </nav>
-
     </header>
-
-
 
     <!-- ========================================
          HERO SECTION
          ======================================== -->
 
     <section class="hero">
-
 
         <!-- Hero Text -->
         <div class="hero-content">
@@ -117,18 +139,13 @@
             <a href="php/shop.php" class="shop-button">
                 SHOP NEW IN
             </a>
-
         </div>
-
 
         <!-- Scroll Indicator -->
         <a href="#new-in" class="scroll-indicator">
             ↓
         </a>
-
     </section>
-
-
 
     <!-- ========================================
          MAIN CONTENT
@@ -136,120 +153,50 @@
 
     <main>
 
-
         <!-- New In Section -->
         <section class="new-in" id="new-in">
 
             <div class="section-heading">
-
                 <p>
                     JUST LANDED
                 </p>
-
                 <h2>
                     New In at CHWOO
                 </h2>
-
             </div>
-
-
 
             <div class="product-grid">
 
+                <!-- The product cards now come directly from MySQL. -->
+                <?php foreach ($newArrivals as $product): ?>
+                    <article class="product-card">
 
-                <!-- Product 1 -->
-                <article class="product-card">
+                        <a href="php/product.php?id=<?= (int)$product['product_id'] ?>">
+                            <img src="<?= e($product['image_path']) ?>"
+                                 alt="<?= e($product['product_name']) ?>">
+                        </a>
 
-                    <a href="product.html">
+                        <h3>
+                            <?= e($product['product_name']) ?>
+                        </h3>
 
-                        <img src="images/newin1.jpg" alt="CHWOO blue fashion top">
+                        <p class="price">
+                            SGD $<?= number_format((float)$product['price'], 2) ?>
+                        </p>
 
-                    </a>
+                    </article>
+                <?php endforeach; ?>
 
-                    <h3>
-                        Cloud Check Top
-                    </h3>
-
-                    <p class="price">
-                        SGD $42.00
-                    </p>
-
-                </article>
-
-
-
-                <!-- Product 2 -->
-                <article class="product-card">
-
-                    <a href="product.html">
-
-                        <img src="images/newin2.jpg" alt="CHWOO fashion skirt">
-
-                    </a>
-
-                    <h3>
-                        Sunday Midi Skirt
-                    </h3>
-
-                    <p class="price">
-                        SGD $48.00
-                    </p>
-
-                </article>
-
-
-
-                <!-- Product 3 -->
-                <article class="product-card">
-
-                    <a href="product.html">
-
-                        <img src="images/newin3.jpg" alt="CHWOO cream fashion dress">
-
-                    </a>
-
-                    <h3>
-                        Butter Day Dress
-                    </h3>
-
-                    <p class="price">
-                        SGD $55.00
-                    </p>
-
-                </article>
-
-
-
-                <!-- Product 4 -->
-                <article class="product-card">
-
-                    <a href="product.html">
-
-                        <img src="images/newin4.jpg" alt="CHWOO casual fashion outfit">
-
-                    </a>
-
-                    <h3>
-                        Everyday Mini
-                    </h3>
-
-                    <p class="price">
-                        SGD $45.00
-                    </p>
-
-                </article>
+                <?php if (empty($newArrivals)): ?>
+                    <p>No new arrivals available at the moment.</p>
+                <?php endif; ?>
 
             </div>
-
-
 
             <a href="php/shop.php" class="view-all">
                 VIEW ALL NEW ARRIVALS →
             </a>
-
         </section>
-
-
 
         <!-- ========================================
              BRAND SECTION
@@ -275,12 +222,9 @@
             <a href="about.html">
                 OUR STORY →
             </a>
-
         </section>
 
     </main>
-
-
 
     <!-- ========================================
          FOOTER
@@ -291,7 +235,6 @@
         <div class="footer-logo">
             CHWOO
         </div>
-
 
         <div class="footer-links">
 
@@ -310,9 +253,7 @@
             <a href="orders.html">
                 Orders
             </a>
-
         </div>
-
 
         <p>
             &copy; 2026 CHWOO Fashion Studio
@@ -320,7 +261,6 @@
 
     </footer>
 
-
 </body>
-
 </html>
+<?php $conn->close(); ?>

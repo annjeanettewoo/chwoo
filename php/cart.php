@@ -75,11 +75,11 @@ $stmt->close();
     <div class="announcement-bar">FREE STANDARD COURIER DELIVERY WITH SGD$80 SPENT</div>
     <header class="shop-header">
         <nav class="navbar" aria-label="Main navigation">
-            <a class="logo-link" href="../index.html">
+            <a class="logo-link" href="../index.php">
                 <img class="logo" src="../images/chwoo-logo.png" alt="CHWOO Fashion Studio">
             </a>
             <div class="main-nav">
-                <a href="../newin.html">NEW IN</a>
+                <a href="../newin.php">NEW IN</a>
                 <a href="shop.php">SHOP</a>
                 <a href="../collections.html">COLLECTIONS</a>
                 <a href="../lookbook.html">LOOKBOOK</a>
