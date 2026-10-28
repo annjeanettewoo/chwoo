@@ -3,25 +3,44 @@
 // A dynamic catalogue page that reuses the ORIGINAL CHWOO HTML classes and CSS.
 // No changes are required to the existing products, orders or database structure.
 session_start();
-require_once __DIR__ . '/php/db.php';
+require_once __DIR__ . '/db.php';
 
-// Browser URLs are anchored to this project folder (e.g. /chwoo/).
-// This prevents relative CSS/image paths from resolving in the wrong folder.
-$baseUrl = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/') . '/';
+// newin.php lives in chwoo/php, but public assets still live in chwoo/.
+// Resolve the project root from the script URL to preserve CSS and image paths.
+$baseUrl = rtrim(str_replace('\\', '/', dirname(dirname($_SERVER['SCRIPT_NAME']))), '/') . '/';
 
 function e($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
 // The current products table has no "added_at" date. Higher product IDs are
-// treated as newer for display purposes. All active products are shown.
+// treated as newer. Show exactly 8 products per page (except the last page).
+$productsPerPage = 8;
+
+// Count all active products so we know how many page buttons to display.
+$countResult = $conn->query('SELECT COUNT(*) AS total FROM products WHERE is_active = 1');
+$totalProducts = (int)$countResult->fetch_assoc()['total'];
+$totalPages = max(1, (int)ceil($totalProducts / $productsPerPage));
+
+// ?page=1, ?page=2, etc. Reject invalid and out-of-range page numbers.
+$page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT, [
+    'options' => ['min_range' => 1]
+]);
+if ($page === false || $page === null) {
+    $page = 1;
+}
+$page = min($page, $totalPages);
+
+// OFFSET skips the products shown on earlier pages.
+$offset = ($page - 1) * $productsPerPage;
 $stmt = $conn->prepare(
     'SELECT product_id, product_name, price, image_path
      FROM products
      WHERE is_active = 1
-     ORDER BY product_id DESC'
-    
+     ORDER BY product_id DESC
+     LIMIT ? OFFSET ?'
 );
+$stmt->bind_param('ii', $productsPerPage, $offset);
 $stmt->execute();
 $result = $stmt->get_result();
 $newArrivals = [];
@@ -30,7 +49,7 @@ while ($product = $result->fetch_assoc()) {
     $path = ltrim((string)$product['image_path'], '/\\');
     $safePath = preg_match('~^images/[a-zA-Z0-9_./-]+$~', $path)
                 && strpos($path, '..') === false;
-    $product['image_url'] = ($safePath && is_file(__DIR__ . '/' . $path)) ? $baseUrl . $path : '';
+    $product['image_url'] = ($safePath && is_file(__DIR__ . '/../' . $path)) ? $baseUrl . $path : '';
     $newArrivals[] = $product;
 }
 $stmt->close();
@@ -55,6 +74,8 @@ foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
     <link rel="stylesheet" href="<?= e($baseUrl) ?>css/footer.css">
     <!-- Only styles a missing-photo placeholder. Does NOT redesign the page. -->
     <link rel="stylesheet" href="<?= e($baseUrl) ?>css/newin.css">
+    <!-- Pagination-only styles. Original CHWOO CSS stays untouched. -->
+    <link rel="stylesheet" href="<?= e($baseUrl) ?>css/newin-pagination.css">
 </head>
 <body class="newin-page">
 
@@ -68,7 +89,7 @@ foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
                 <img src="<?= e($baseUrl) ?>images/chwoo-logo.png" alt="CHWOO Fashion Studio" class="logo">
             </a>
             <div class="main-nav">
-                <a href="<?= e($baseUrl) ?>newin.php" class="active" aria-current="page">NEW IN</a>
+                <a href="<?= e($baseUrl) ?>php/newin.php" class="active" aria-current="page">NEW IN</a>
                 <a href="<?= e($baseUrl) ?>php/shop.php">SHOP</a>
                 <a href="<?= e($baseUrl) ?>collections.html">COLLECTIONS</a>
                 <a href="<?= e($baseUrl) ?>lookbook.html">LOOKBOOK</a>
@@ -111,6 +132,27 @@ foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
             <?php if (empty($newArrivals)): ?>
                 <p>New pieces are on their way. Explore our collection again soon.</p>
             <?php endif; ?>
+
+            <?php if ($totalPages > 1): ?>
+                <nav class="newin-pagination" aria-label="New In pages">
+                    <?php if ($page > 1): ?>
+                        <a class="pagination-link" href="newin.php?page=<?= $page - 1 ?>">&larr; Previous</a>
+                    <?php endif; ?>
+
+                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                        <a class="pagination-link<?= $i === $page ? ' is-current' : '' ?>"
+                           href="newin.php?page=<?= $i ?>"
+                           <?= $i === $page ? 'aria-current="page"' : '' ?>>
+                            <?= $i ?>
+                        </a>
+                    <?php endfor; ?>
+
+                    <?php if ($page < $totalPages): ?>
+                        <a class="pagination-link" href="newin.php?page=<?= $page + 1 ?>">Next &rarr;</a>
+                    <?php endif; ?>
+                </nav>
+            <?php endif; ?>
+
             <a href="<?= e($baseUrl) ?>php/shop.php" class="view-all">SHOP ALL PIECES →</a>
         </section>
     </main>

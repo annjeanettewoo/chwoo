@@ -71,7 +71,7 @@ function shopUrl($category, $sort) {
                 <img class="logo" src="../images/chwoo-logo.png" alt="CHWOO Fashion Studio">
             </a>
             <div class="main-nav">
-                <a href="../newin.php">NEW IN</a>
+                <a href="newin.php">NEW IN</a>
                 <a href="shop.php" aria-current="page">SHOP</a>
                 <a href="../collections.html">COLLECTIONS</a>
                 <a href="../lookbook.html">LOOKBOOK</a>
