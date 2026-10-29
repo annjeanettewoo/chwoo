@@ -79,7 +79,7 @@ foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
                     SHOP
                 </a>
 
-                <a href="collections.html">
+                <a href="php/collections.php">
                     COLLECTIONS
                 </a>
 

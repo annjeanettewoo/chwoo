@@ -89,11 +89,11 @@ foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
                 <img src="<?= e($baseUrl) ?>images/chwoo-logo.png" alt="CHWOO Fashion Studio" class="logo">
             </a>
             <div class="main-nav">
-                <a href="<?= e($baseUrl) ?>php/newin.php" class="active" aria-current="page">NEW IN</a>
-                <a href="<?= e($baseUrl) ?>php/shop.php">SHOP</a>
-                <a href="<?= e($baseUrl) ?>collections.html">COLLECTIONS</a>
-                <a href="<?= e($baseUrl) ?>lookbook.html">LOOKBOOK</a>
-                <a href="<?= e($baseUrl) ?>about.html">ABOUT</a>
+                <a href="newin.php">NEW IN</a>
+                <a href="shop.php" aria-current="page">SHOP</a>
+                <a href="collections.php">COLLECTIONS</a>
+                <a href="../lookbook.html">LOOKBOOK</a>
+                <a href="../about.html">ABOUT</a>
             </div>
             <div class="nav-tools">
                 <span>SG | SGD $</span>

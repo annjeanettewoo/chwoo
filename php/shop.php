@@ -73,7 +73,7 @@ function shopUrl($category, $sort) {
             <div class="main-nav">
                 <a href="newin.php">NEW IN</a>
                 <a href="shop.php" aria-current="page">SHOP</a>
-                <a href="../collections.html">COLLECTIONS</a>
+                <a href="collections.php">COLLECTIONS</a>
                 <a href="../lookbook.html">LOOKBOOK</a>
                 <a href="../about.html">ABOUT</a>
             </div>
