@@ -1,13 +1,10 @@
 <?php
 // CHWOO Shop | MySQL-powered catalogue, original CHWOO layout
 session_start();
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/bag.php';
 
 // Show the number of items currently saved in the session bag.
-$bagCount = 0;
-foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
-    $bagCount += (int)$item['quantity'];
-}
+$bagCount = $chwooBagCount;
 
 // Only known category and sort values can affect the SQL query.
 $categories = ['All', 'Tops', 'Bottoms', 'Dresses'];
@@ -17,23 +14,29 @@ if (!in_array($category, $categories, true)) {
 }
 
 $sortOptions = [
-    'featured'   => 'product_id ASC',
-    'price_asc'  => 'price ASC, product_id ASC',
-    'price_desc' => 'price DESC, product_id ASC',
-    'name_asc'   => 'product_name ASC'
+    'featured'   => 'p.product_id ASC',
+    'price_asc'  => 'c.price ASC, p.product_id ASC',
+    'price_desc' => 'c.price DESC, p.product_id ASC',
+    'name_asc'   => 'p.product_name ASC, p.product_id ASC'
 ];
 $sort = $_GET['sort'] ?? 'featured';
-if (!array_key_exists($sort, $sortOptions)) {
+if (!is_string($sort) || !array_key_exists($sort, $sortOptions)) {
     $sort = 'featured';
 }
 
-// This is the only change in where the products come from: MySQL, not hardcoded HTML.
-$sql = 'SELECT product_id, product_name, category, price, image_path, stock_quantity
-        FROM products WHERE is_active = 1';
+// Display the default colour; availability includes inventory across all colours and sizes.
+$sql = 'SELECT p.product_id, p.product_name, p.category, c.price, c.image_path,
+               COALESCE(SUM(v.stock_quantity), 0) AS stock_quantity
+        FROM products AS p
+        JOIN product_colours AS c ON c.product_id = p.product_id AND c.is_default = 1
+        LEFT JOIN product_colours AS inventory_colour ON inventory_colour.product_id = p.product_id
+        LEFT JOIN product_variants AS v ON v.colour_id = inventory_colour.colour_id
+        WHERE p.is_active = 1';
 
 if ($category !== 'All') {
-    $sql .= ' AND category = ?';
+    $sql .= ' AND p.category = ?';
 }
+$sql .= ' GROUP BY p.product_id, p.product_name, p.category, c.colour_id, c.price, c.image_path';
 $sql .= ' ORDER BY ' . $sortOptions[$sort];
 
 $stmt = $conn->prepare($sql);
@@ -58,9 +61,9 @@ function shopUrl($category, $sort) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shop | CHWOO Fashion Studio</title>
     <!-- Shared CHWOO styling, followed by Shop-specific styling. -->
-    <link rel="stylesheet" href="../css/chwoo.css">
     <link rel="stylesheet" href="../css/shop.css">
     <link rel="stylesheet" href="../css/footer.css">
+    <link rel="stylesheet" href="<?= chwooEscape($chwooRootUrl) ?>css/bag.css">
 </head>
 <body class="shop-page">
     <div class="announcement-bar">FREE STANDARD COURIER DELIVERY WITH SGD$80 SPENT</div>
@@ -81,7 +84,7 @@ function shopUrl($category, $sort) {
                 <span>SG | SGD $</span>
                 <a href="../search.html">SEARCH</a>
                 <a href="../login.html">ACCOUNT</a>
-                <a href="cart.php">BAG (<?= $bagCount ?>)</a>
+                <a data-bag-trigger href="cart.php">BAG (<?= $bagCount ?>)</a>
             </div>
         </nav>
     </header>
@@ -126,7 +129,9 @@ function shopUrl($category, $sort) {
                     <?php
                     // DB stores paths relative to the chwoo root, e.g. images/newin1.jpg.
                     $imagePath = ltrim((string)$product['image_path'], '/\\');
-                    $imageExists = is_file(__DIR__ . '/../' . $imagePath);
+                    $safePath = preg_match('~^images/[a-zA-Z0-9_./-]+$~', $imagePath)
+                                && strpos($imagePath, '..') === false;
+                    $imageExists = $safePath && is_file(__DIR__ . '/../' . $imagePath);
                     ?>
                     <article class="shop-product">
                         <a class="shop-product-link" href="product.php?id=<?= (int)$product['product_id'] ?>"
@@ -186,6 +191,7 @@ function shopUrl($category, $sort) {
         </p>
 
     </footer>
+    <?php include __DIR__ . '/bag_drawer.php'; ?>
 </body>
 </html>
 <?php

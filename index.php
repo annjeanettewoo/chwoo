@@ -2,7 +2,7 @@
 // CHWOO Homepage | IE4727 Base Version
 // Preserve the original CHWOO homepage design; only the four product cards load from MySQL.
 session_start();
-require_once __DIR__ . '/php/db.php';
+require_once __DIR__ . '/php/bag.php';
 
 // Escape database text before displaying it in HTML.
 function e($value) {
@@ -11,10 +11,11 @@ function e($value) {
 
 // Keep the original homepage selection and order: products 1-4.
 // The full active catalogue remains available in php/shop.php.
-$sql = 'SELECT product_id, product_name, price, image_path
-        FROM products
-        WHERE is_active = 1
-        ORDER BY product_id ASC
+$sql = 'SELECT p.product_id, p.product_name, c.price, c.image_path
+        FROM products AS p
+        JOIN product_colours AS c ON c.product_id = p.product_id AND c.is_default = 1
+        WHERE p.is_active = 1
+        ORDER BY p.product_id ASC
         LIMIT 4';
 
 $stmt = $conn->prepare($sql);
@@ -22,15 +23,16 @@ $stmt->execute();
 $result = $stmt->get_result();
 $newArrivals = [];
 while ($product = $result->fetch_assoc()) {
+    $path = ltrim((string)$product['image_path'], '/\\');
+    $safePath = preg_match('~^images/[a-zA-Z0-9_./-]+$~', $path)
+                && strpos($path, '..') === false;
+    $product['image_url'] = ($safePath && is_file(__DIR__ . '/' . $path)) ? $path : '';
     $newArrivals[] = $product;
 }
 $stmt->close();
 
 // Use the same cart session as php/product.php and php/cart.php.
-$bagCount = 0;
-foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
-    $bagCount += (int)$item['quantity'];
-}
+$bagCount = $chwooBagCount;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -45,6 +47,7 @@ foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/home.css">
     <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="<?= chwooEscape($chwooRootUrl) ?>css/bag.css">
 </head>
 
 <body class="home-page">
@@ -107,7 +110,7 @@ foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
                     ACCOUNT
                 </a>
 
-                <a href="php/cart.php">
+                <a data-bag-trigger href="php/cart.php">
                     BAG <span>(<?= $bagCount ?>)</span>
                 </a>
             </div>
@@ -172,8 +175,12 @@ foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
                     <article class="product-card">
 
                         <a href="php/product.php?id=<?= (int)$product['product_id'] ?>">
-                            <img src="<?= e($product['image_path']) ?>"
-                                 alt="<?= e($product['product_name']) ?>">
+                            <?php if ($product['image_url'] !== ''): ?>
+                                <img src="<?= e($product['image_url']) ?>"
+                                     alt="<?= e($product['product_name']) ?>">
+                            <?php else: ?>
+                                <div style="aspect-ratio: 3 / 4; display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--warm-white); color: var(--brown); font-size: 13px; text-align: center;">Product photo coming soon</div>
+                            <?php endif; ?>
                         </a>
 
                         <h3>
@@ -261,6 +268,7 @@ foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
 
     </footer>
 
+    <?php include __DIR__ . '/php/bag_drawer.php'; ?>
 </body>
 </html>
 <?php $conn->close(); ?>

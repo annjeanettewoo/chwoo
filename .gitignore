@@ -1,0 +1,7 @@
+
+# Local design previews and reference files
+/_design_reference/
+
+# Operating system files
+.DS_Store
+Thumbs.db

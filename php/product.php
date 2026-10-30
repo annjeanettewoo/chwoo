@@ -2,7 +2,7 @@
 // CHWOO Product Details | IE4727
 // Reads product information from MySQL and stores the shopping bag in a PHP session.
 session_start();
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/bag.php';
 
 function e($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -12,103 +12,139 @@ $productId = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT, [
     'options' => ['min_range' => 1]
 ]);
 $product = null;
+$colours = [];
+$availableSizes = ['XS', 'S', 'M', 'L'];
 if ($productId !== false && $productId !== null) {
-    $stmt = $conn->prepare('SELECT product_id, product_name, category, price,
-                                   image_path, description, stock_quantity
+    $stmt = $conn->prepare('SELECT product_id, product_name, description, fit_information
                             FROM products WHERE product_id = ? AND is_active = 1');
     $stmt->bind_param('i', $productId);
     $stmt->execute();
     $product = $stmt->get_result()->fetch_assoc();
     $stmt->close();
 }
-if (!$product) { http_response_code(404); }
-
-if (empty($_SESSION['chwoo_form_token'])) {
-    $_SESSION['chwoo_form_token'] = bin2hex(random_bytes(16));
+if (!$product) {
+    http_response_code(404);
+} else {
+    $stmt = $conn->prepare('SELECT c.colour_id, c.colour_name, c.image_path, c.price, c.swatch_hex,
+                                   v.variant_id, v.size_code, v.stock_quantity
+                            FROM product_colours AS c
+                            LEFT JOIN product_variants AS v ON v.colour_id = c.colour_id
+                            WHERE c.product_id = ? ORDER BY c.is_default DESC, c.colour_id');
+    $stmt->bind_param('i', $productId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $colourId = (int)$row['colour_id'];
+        if (!isset($colours[$colourId])) {
+            $imagePath = (string)$row['image_path'];
+            $hasImage = preg_match('~^images/[a-zA-Z0-9_./-]+$~', $imagePath)
+                && !str_contains($imagePath, '..') && is_file(__DIR__ . '/../' . $imagePath);
+            $colours[$colourId] = [
+                'name' => $row['colour_name'] !== '' ? $row['colour_name'] : 'Colour unspecified',
+                'price' => $row['price'],
+                'swatch_hex' => preg_match('/^#[0-9A-Fa-f]{6}$/D', $row['swatch_hex'] ?? '') ? $row['swatch_hex'] : '#ddd3ca',
+                'variants' => [],
+                'image_url' => $hasImage ? '../' . $imagePath : '',
+                'stock' => array_fill_keys($availableSizes, 0)
+            ];
+        }
+        if (in_array($row['size_code'], $availableSizes, true)) {
+            $colours[$colourId]['variants'][$row['size_code']] = (int)$row['variant_id'];
+            $inBag = $_SESSION['chwoo_cart'][(int)$row['variant_id']]['quantity'] ?? 0;
+            $colours[$colourId]['stock'][$row['size_code']] = max(0, (int)$row['stock_quantity'] - $inBag);
+        }
+    }
+    $stmt->close();
 }
-
-// These are demonstration variants, not actual size/colour-specific inventory.
-// MySQL currently tracks one stock quantity per product.
-$availableSizes = ['XS', 'S', 'M', 'L'];
-$availableColours = [
-    'Powder Blue' => '#BED1E1',
-    'Butter Yellow' => '#FFF3C2',
-    'Chocolate Brown' => '#4B2E1F'
-];
-
+$sizeGuidance = [];
+$stmt = $conn->prepare('SELECT size_code, guidance FROM size_guide ORDER BY sort_order');
+$stmt->execute();
+$result = $stmt->get_result();
+while ($row = $result->fetch_assoc()) {
+    if (!empty($row['guidance'])) { $sizeGuidance[] = $row; }
+}
+$stmt->close();
 $error = '';
 $success = $_SESSION['chwoo_flash'] ?? '';
 unset($_SESSION['chwoo_flash']);
 $selectedSize = '';
-$selectedColour = 'Powder Blue';
-
+$selectedColourId = array_key_first($colours);
+$requestedColourId = filter_var($_GET['colour'] ?? null, FILTER_VALIDATE_INT);
+if (isset($colours[$requestedColourId])) { $selectedColourId = $requestedColourId; }
+$requestedSize = $_GET['size'] ?? '';
+if (is_string($requestedSize) && isset($colours[$selectedColourId]['variants'][$requestedSize])) {
+    $selectedSize = $requestedSize;
+}
+$sizeError = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $product) {
     $action = $_POST['action'] ?? 'add';
     $token = $_POST['form_token'] ?? '';
-    $selectedSize = $_POST['size'] ?? '';
-    $selectedColour = $_POST['colour'] ?? 'Powder Blue';
-
+    $submittedProductId = filter_var($_POST['product_id'] ?? null, FILTER_VALIDATE_INT);
+    $submittedColourId = filter_var($_POST['colour'] ?? null, FILTER_VALIDATE_INT);
+    $selectedSize = is_string($_POST['size'] ?? null) ? $_POST['size'] : '';
+    if (isset($colours[$submittedColourId])) { $selectedColourId = $submittedColourId; }
     if (!is_string($token) || !hash_equals($_SESSION['chwoo_form_token'], $token)) {
         $error = 'Please refresh the page and try again.';
+    } elseif ($submittedProductId !== $productId) {
+        $error = 'Invalid product selection.';
     } elseif ($action === 'wishlist') {
-        if (!isset($_SESSION['chwoo_wishlist'])) { $_SESSION['chwoo_wishlist'] = []; }
-        if (isset($_SESSION['chwoo_wishlist'][$productId])) {
-            unset($_SESSION['chwoo_wishlist'][$productId]);
-            $_SESSION['chwoo_flash'] = 'Removed from your wishlist.';
+        // Task 04 can consume this intent after real authentication; no fake saved wishlist.
+        $_SESSION['chwoo_pending_wishlist_product_id'] = (int)$productId;
+        if (is_file(__DIR__ . '/login.php')) {
+            header('Location: login.php', true, 303);
         } else {
-            $_SESSION['chwoo_wishlist'][$productId] = true;
-            $_SESSION['chwoo_flash'] = 'Saved to your wishlist.';
+            $_SESSION['chwoo_flash'] = 'Please sign in to save this piece. Sign-in is coming soon; your wishlist request is remembered.';
+            $query = http_build_query(['id' => $productId, 'colour' => $selectedColourId, 'size' => $selectedSize]);
+            header('Location: product.php?' . $query, true, 303);
         }
-        header('Location: product.php?id=' . (int)$productId, true, 303);
         exit;
     } elseif ($action !== 'add') {
         $error = 'Unknown action.';
-    } elseif (!is_string($selectedSize) || !in_array($selectedSize, $availableSizes, true)) {
-        $error = 'Please select a size.';
-    } elseif (!is_string($selectedColour) || !array_key_exists($selectedColour, $availableColours)) {
-        $error = 'Please select a colour.';
-    } elseif ((int)$product['stock_quantity'] < 1) {
-        $error = 'This piece is currently sold out.';
+    } elseif (!in_array($selectedSize, $availableSizes, true)) {
+        $error = 'Please choose a size.';
+        $sizeError = true;
+    } elseif (!$submittedColourId || !isset($colours[$submittedColourId])) {
+        $error = 'Please select a valid colour for this product.';
     } else {
-        if (!isset($_SESSION['chwoo_cart'])) { $_SESSION['chwoo_cart'] = []; }
-        // Cart entries are identified by product + size + colour.
-        $key = $productId . ':' . $selectedSize . ':' . str_replace(' ', '-', $selectedColour);
-        $alreadyInBag = 0;
-        foreach ($_SESSION['chwoo_cart'] as $item) {
-            if ((int)$item['product_id'] === (int)$productId) {
-                $alreadyInBag += (int)$item['quantity'];
-            }
-        }
-        if ($alreadyInBag + 1 > (int)$product['stock_quantity']) {
-            $error = 'There is not enough stock available.';
+        // Only the parent has an active flag in this schema.
+        $stmt = $conn->prepare('SELECT v.variant_id, v.stock_quantity
+                                FROM product_variants AS v
+                                JOIN product_colours AS c ON c.colour_id = v.colour_id
+                                JOIN products AS p ON p.product_id = c.product_id
+                                WHERE p.product_id = ? AND p.is_active = 1
+                                  AND c.colour_id = ? AND v.size_code = ?');
+        $stmt->bind_param('iis', $productId, $submittedColourId, $selectedSize);
+        $stmt->execute();
+        $variant = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!$variant) {
+            $error = 'This colour and size combination is unavailable.';
         } else {
-            $existingQuantity = isset($_SESSION['chwoo_cart'][$key])
-                ? (int)$_SESSION['chwoo_cart'][$key]['quantity'] : 0;
-            $_SESSION['chwoo_cart'][$key] = [
-                'product_id' => (int)$productId,
-                'size' => $selectedSize,
-                'colour' => $selectedColour,
-                'quantity' => $existingQuantity + 1
-            ];
-            $_SESSION['chwoo_flash'] = 'Added to your bag!';
-            header('Location: product.php?id=' . (int)$productId, true, 303);
-            exit;
+            $variantId = (int)$variant['variant_id'];
+            $existingQuantity = $_SESSION['chwoo_cart'][$variantId]['quantity'] ?? 0;
+            if ((int)$variant['stock_quantity'] < 1) {
+                $error = 'Size ' . $selectedSize . ' is unavailable in ' . $colours[$submittedColourId]['name'] . '.';
+            } elseif ($existingQuantity >= (int)$variant['stock_quantity']) {
+                $error = 'Size ' . $selectedSize . ' is unavailable in ' . $colours[$submittedColourId]['name'] . '.';
+            } else {
+                $_SESSION['chwoo_cart'][$variantId] = [
+                    'variant_id' => $variantId,
+                    'quantity' => $existingQuantity + 1
+                ];
+                $_SESSION['chwoo_flash'] = 'Added to your bag!';
+                $query = http_build_query(['id' => $productId, 'colour' => $submittedColourId, 'size' => $selectedSize, 'bag' => 'open']);
+                header('Location: product.php?' . $query, true, 303);
+                exit;
+            }
         }
     }
 }
-
-$bagCount = 0;
-foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
-    $bagCount += (int)$item['quantity'];
+$selectedColour = $colours[$selectedColourId] ?? null;
+$bagCount = $chwooBagCount;
+$bagNotice = $chwooBagMessage;
+if ($product && $selectedColour) {
+    $chwooReturnTo = 'php/product.php?' . http_build_query(['id' => $productId, 'colour' => $selectedColourId, 'size' => $selectedSize]);
 }
-$inWishlist = $product && isset($_SESSION['chwoo_wishlist'][$productId]);
-
-// Reject unsafe image paths and look for actual files in the parent chwoo/images folder.
-$imagePath = $product ? ltrim((string)$product['image_path'], '/\\') : '';
-$validImagePath = preg_match('~^images/[a-zA-Z0-9_./-]+$~', $imagePath)
-    && !str_contains($imagePath, '..');
-$imageExists = $product && $validImagePath && is_file(__DIR__ . '/../' . $imagePath);
-$imageUrl = $imageExists ? '../' . $imagePath : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -117,10 +153,10 @@ $imageUrl = $imageExists ? '../' . $imagePath : '';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $product ? e($product['product_name']) . ' | CHWOO' : 'Product not found | CHWOO' ?></title>
     <!-- Keep the working shared Shop stylesheet: no edits needed. -->
-    <link rel="stylesheet" href="../css/chwoo.css">
     <link rel="stylesheet" href="../css/shop.css">
     <link rel="stylesheet" href="../css/product.css?v=3">
     <link rel="stylesheet" href="../css/footer.css">
+    <link rel="stylesheet" href="<?= chwooEscape($chwooRootUrl) ?>css/bag.css">
 </head>
 <body class="shop-page product-page">
     <div class="announcement-bar">FREE STANDARD COURIER DELIVERY WITH SGD$80 SPENT</div>
@@ -140,7 +176,7 @@ $imageUrl = $imageExists ? '../' . $imagePath : '';
                 <span>SG | SGD $</span>
                 <a href="../search.html">SEARCH</a>
                 <a href="../login.html">ACCOUNT</a>
-                <a href="cart.php">BAG (<?= $bagCount ?>)</a>
+                <a data-bag-trigger href="cart.php">BAG (<?= $bagCount ?>)</a>
             </div>
         </nav>
     </header>
@@ -160,32 +196,31 @@ $imageUrl = $imageExists ? '../' . $imagePath : '';
             </section>
         <?php else: ?>
             <div class="product-layout">
-                <!-- Gallery: the current database stores one image per product.
-                     Repeated thumbnail previews retain the original mock-up layout. -->
                 <section class="product-gallery" aria-label="Product image">
-                    <div class="product-large-image">
-                        <?php if ($imageExists): ?>
-                            <img src="<?= e($imageUrl) ?>" alt="<?= e($product['product_name']) ?>">
-                        <?php else: ?>
-                            <div class="product-no-image">Product photo coming soon</div>
-                        <?php endif; ?>
-                    </div>
-                    <?php if ($imageExists): ?>
-                        <div class="product-thumbnails" aria-label="Product thumbnail previews">
-                            <?php for ($i = 0; $i < 3; $i++): ?>
-                                <div class="product-thumbnail<?= $i === 0 ? ' selected' : '' ?>">
-                                    <img src="<?= e($imageUrl) ?>" alt="<?= e($product['product_name']) ?> preview">
-                                </div>
-                            <?php endfor; ?>
+                    <?php foreach ($colours as $colourId => $colour): ?>
+                        <div data-colour-gallery="<?= $colourId ?>" <?= $colourId !== $selectedColourId ? 'hidden' : '' ?>>
+                            <div class="product-large-image">
+                                <?php if ($colour['image_url']): ?>
+                                    <img src="<?= e($colour['image_url']) ?>" alt="<?= e($product['product_name'] . ' — ' . $colour['name']) ?>">
+                                <?php else: ?>
+                                    <div class="product-no-image">Product photo coming soon</div>
+                                <?php endif; ?>
+                            </div>
                         </div>
+                    <?php endforeach; ?>
+                    <?php if (!$colours): ?>
+                        <div class="product-large-image"><div class="product-no-image">Product photo coming soon</div></div>
                     <?php endif; ?>
                 </section>
 
                 <section class="product-information" aria-labelledby="product-name">
                     <p class="product-eyebrow">CHWOO COLLECTION</p>
                     <h1 id="product-name"><?= e($product['product_name']) ?></h1>
-                    <p class="product-price">SGD $<?= number_format((float)$product['price'], 2) ?></p>
+                    <p class="product-price" id="selected-price" aria-live="polite"><?= $selectedColour ? 'SGD $' . number_format((float)$selectedColour['price'], 2) : 'Currently unavailable' ?></p>
 
+                    <?php if ($bagNotice): ?>
+                        <div class="product-message" role="status"><?= e($bagNotice) ?></div>
+                    <?php endif; ?>
                     <?php if ($success): ?>
                         <div class="product-message success" role="status">
                             <?= e($success) ?> <a href="cart.php">View bag &rarr;</a>
@@ -195,22 +230,27 @@ $imageUrl = $imageExists ? '../' . $imagePath : '';
                         <div class="product-message error" role="alert"><?= e($error) ?></div>
                     <?php endif; ?>
 
-                    <?php if ((int)$product['stock_quantity'] > 0): ?>
+                    <?php if ($colours): ?>
                         <form action="product.php?id=<?= (int)$productId ?>" method="post" class="product-form">
                             <input type="hidden" name="form_token" value="<?= e($_SESSION['chwoo_form_token']) ?>">
-                            <!-- One item per click; quantity editing can be added to Bag later. -->
+                            <input type="hidden" name="product_id" value="<?= (int)$productId ?>">
                             <div class="product-colour-header">
                                 <span>COLOUR</span>
-                                <span class="product-colour-value" id="selected-colour-name"><?= e($selectedColour) ?></span>
+                                <span class="product-colour-value" id="selected-colour-name"><?= e($selectedColour['name']) ?></span>
                             </div>
                             <fieldset class="product-colours">
                                 <legend class="visually-hidden">Choose a colour</legend>
-                                <?php foreach ($availableColours as $colourName => $colourHex): ?>
-                                    <label class="colour-choice" title="<?= e($colourName) ?>">
-                                        <input type="radio" name="colour" value="<?= e($colourName) ?>"
-                                            <?= $selectedColour === $colourName ? 'checked' : '' ?> required>
-                                        <span class="colour-dot" style="--swatch: <?= e($colourHex) ?>"></span>
-                                        <span class="visually-hidden"><?= e($colourName) ?></span>
+                                <?php foreach ($colours as $colourId => $colour): ?>
+                                    <label class="colour-choice" title="<?= e($colour['name']) ?>">
+                                        <input type="radio" name="colour" value="<?= $colourId ?>"
+                                            <?= $colourId === $selectedColourId ? 'checked' : '' ?> required
+                                            aria-label="<?= e($colour['name']) ?>"
+                                            data-name="<?= e($colour['name']) ?>"
+                                            data-price="SGD $<?= number_format((float)$colour['price'], 2) ?>"
+                                            <?php foreach ($availableSizes as $size): ?>
+                                                data-stock-<?= strtolower($size) ?>="<?= $colour['stock'][$size] ?>"
+                                            <?php endforeach; ?>>
+                                        <span class="colour-dot" style="--swatch: <?= e($colour['swatch_hex']) ?>"></span>
                                     </label>
                                 <?php endforeach; ?>
                             </fieldset>
@@ -219,10 +259,10 @@ $imageUrl = $imageExists ? '../' . $imagePath : '';
                                 <span>SIZE</span>
                                 <a href="#size-and-fit">SIZE GUIDE</a>
                             </div>
-                            <fieldset class="product-sizes">
+                            <fieldset class="product-sizes<?= $sizeError ? ' is-invalid' : '' ?>" aria-describedby="stock-message" <?= $sizeError ? 'aria-invalid="true"' : '' ?>>
                                 <legend class="visually-hidden">Choose a size</legend>
                                 <?php foreach ($availableSizes as $size): ?>
-                                    <label class="size-choice">
+                                    <label class="size-choice<?= $selectedColour['stock'][$size] === 0 ? ' is-unavailable' : '' ?>">
                                         <input type="radio" name="size" value="<?= e($size) ?>"
                                             <?= $selectedSize === $size ? 'checked' : '' ?> required>
                                         <span><?= e($size) ?></span>
@@ -230,14 +270,12 @@ $imageUrl = $imageExists ? '../' . $imagePath : '';
                                 <?php endforeach; ?>
                             </fieldset>
 
+                            <?php $selectionAvailable = $selectedSize !== '' && ($selectedColour['stock'][$selectedSize] ?? 0) > 0; ?>
+                            <p id="stock-message" class="product-stock-message<?= $sizeError ? ' error' : ($selectedSize ? ($selectionAvailable ? ' success' : ' error') : '') ?>" role="status" aria-live="polite"><?= !$selectedSize ? 'Please choose a size.' : ($selectionAvailable ? 'Size ' . e($selectedSize) . ' is available.' : 'Size ' . e($selectedSize) . ' is unavailable in ' . e($selectedColour['name']) . '.') ?></p>
                             <div class="product-action-row">
-                                <button class="add-to-bag" type="submit" name="action" value="add">ADD TO BAG</button>
-                                <button class="wishlist-button<?= $inWishlist ? ' is-saved' : '' ?>"
-                                    type="submit" name="action" value="wishlist" formnovalidate
-                                    aria-label="<?= $inWishlist ? 'Remove from wishlist' : 'Add to wishlist' ?>"
-                                    title="<?= $inWishlist ? 'Remove from wishlist' : 'Save to wishlist' ?>">
-                                    <?= $inWishlist ? '&#9829;' : '&#9825;' ?>
-                                </button>
+                                <button class="add-to-bag" type="submit" name="action" value="add" <?= $selectedSize && !$selectionAvailable ? 'disabled' : '' ?>>ADD TO BAG</button>
+                                <button class="wishlist-button" type="submit" name="action" value="wishlist" formnovalidate
+                                    aria-label="Sign in to save to wishlist" title="Sign in to save to wishlist">&#9825;</button>
                             </div>
                         </form>
                     <?php else: ?>
@@ -256,7 +294,10 @@ $imageUrl = $imageExists ? '../' . $imagePath : '';
                         <details id="size-and-fit">
                             <summary>SIZE &amp; FIT <span class="plus">+</span></summary>
                             <div class="accordion-content">
-                                Sizes XS, S, M and L are demonstration options. Stock is currently tracked per product.
+                                <?= !empty($product['fit_information']) ? nl2br(e($product['fit_information'])) : 'Size and fit information is not yet available.' ?>
+                                <?php foreach ($sizeGuidance as $guide): ?>
+                                    <p><?= e($guide['size_code']) ?>: <?= nl2br(e($guide['guidance'])) ?></p>
+                                <?php endforeach; ?>
                             </div>
                         </details>
                         <details>
@@ -304,14 +345,8 @@ $imageUrl = $imageExists ? '../' . $imagePath : '';
 
     </footer>
 
-    <script>
-    // Update the visible colour name when a swatch is selected.
-    document.querySelectorAll('input[name="colour"]').forEach(function(input) {
-        input.addEventListener('change', function() {
-            document.getElementById('selected-colour-name').textContent = this.value;
-        });
-    });
-    </script>
+    <script src="../js/product-selection.js" defer></script>
+    <?php include __DIR__ . '/bag_drawer.php'; ?>
 </body>
 </html>
 <?php $conn->close(); ?>

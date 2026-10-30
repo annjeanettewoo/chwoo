@@ -4,10 +4,8 @@
 // Image placeholders disappear automatically when you add the named image files.
 
 session_start();
-$bagCount = 0;
-foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
-    $bagCount += (int)($item['quantity'] ?? 0);
-}
+require_once __DIR__ . '/bag.php';
+$bagCount = $chwooBagCount;
 
 // These URLs should match the actual filenames in your CHWOO project.
 $homeUrl = 'index.html';
@@ -49,6 +47,7 @@ function collectionImage(string $filename, string $alt, string $placeholderText)
     <link rel="stylesheet" href="../css/header.css">
     <link rel="stylesheet" href="../css/collections.css">
     <link rel="stylesheet" href="../css/footer.css">
+    <link rel="stylesheet" href="<?= chwooEscape($chwooRootUrl) ?>css/bag.css">
 </head>
 <body class="collections-page">
 
@@ -72,7 +71,7 @@ function collectionImage(string $filename, string $alt, string $placeholderText)
                 <span>SG | SGD $</span>
                 <a href="../search.html">SEARCH</a>
                 <a href="../login.html">ACCOUNT</a>
-                <a href="cart.php">BAG (<?= $bagCount ?>)</a>
+                <a data-bag-trigger href="cart.php">BAG (<?= $bagCount ?>)</a>
             </div>
         </nav>
         </nav>
@@ -135,5 +134,6 @@ function collectionImage(string $filename, string $alt, string $placeholderText)
         </div>
         <p>&copy; <?= date('Y') ?> CHWOO Fashion Studio</p>
     </footer>
+    <?php include __DIR__ . '/bag_drawer.php'; ?>
 </body>
 </html>
