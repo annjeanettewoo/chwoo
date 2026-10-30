@@ -76,6 +76,21 @@ CREATE TABLE customers (
     UNIQUE KEY uq_customers_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Product-level favourites: one product per customer, independent of colour/size.
+CREATE TABLE wishlist (
+    wishlist_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    customer_id INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (wishlist_id),
+    UNIQUE KEY uq_wishlist_customer_product (customer_id, product_id),
+    KEY idx_wishlist_product (product_id),
+    CONSTRAINT fk_wishlist_customer FOREIGN KEY (customer_id)
+        REFERENCES customers (customer_id) ON DELETE CASCADE,
+    CONSTRAINT fk_wishlist_product FOREIGN KEY (product_id)
+        REFERENCES products (product_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Checkout snapshots preserve recipient/contact details when accounts change.
 -- Payment is simulated; do not store card data. Currency is SGD throughout.
 CREATE TABLE orders (

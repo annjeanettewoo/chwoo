@@ -9,9 +9,11 @@
     let previousOverflow = '';
     let background = [];
     let hideTimer;
+    let isOpen = false;
 
     function openBag() {
-        if (drawer.classList.contains('is-open')) { return; }
+        if (isOpen) { return; }
+        isOpen = true;
         clearTimeout(hideTimer);
         previousFocus = document.activeElement;
         previousOverflow = document.body.style.overflow;
@@ -31,7 +33,8 @@
     }
 
     function closeBag() {
-        if (!drawer.classList.contains('is-open')) { return; }
+        if (!isOpen) { return; }
+        isOpen = false;
         drawer.classList.remove('is-open');
         overlay.classList.remove('is-open');
         drawer.setAttribute('aria-hidden', 'true');
@@ -68,7 +71,17 @@
             else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
         }
     });
-    if (drawer.dataset.open === 'true') {
+    if (drawer.dataset.resume === 'true') {
+        // PHP rendered the updated drawer open. Initialise focus/inert immediately,
+        // then restore transitions only after that open state has been painted.
+        openBag();
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                drawer.classList.remove('is-restoring');
+                overlay.classList.remove('is-restoring');
+            });
+        });
+    } else if (drawer.dataset.open === 'true') {
         if (document.readyState === 'complete') { openBag(); }
         else { window.addEventListener('load', openBag, { once: true }); }
     }

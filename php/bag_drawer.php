@@ -1,6 +1,10 @@
-<?php // The data and controls are shared with the full bag, never browser storage. ?>
-<div class="chwoo-bag-overlay" id="chwoo-bag-overlay" hidden></div>
-<aside class="chwoo-bag-drawer" id="chwoo-bag-drawer" role="dialog" aria-modal="true" aria-labelledby="chwoo-bag-title" aria-hidden="true" inert data-open="<?= ($_GET['bag'] ?? '') === 'open' ? 'true' : 'false' ?>">
+<?php
+// Drawer POSTs resume visibly open; ordinary BAG/add-to-bag opens still animate.
+$chwooBagResume = ($_GET['bag'] ?? '') === 'updated';
+$chwooBagOpen = $chwooBagResume || ($_GET['bag'] ?? '') === 'open';
+?>
+<div class="chwoo-bag-overlay<?= $chwooBagResume ? ' is-open is-restoring' : '' ?>" id="chwoo-bag-overlay" <?= $chwooBagResume ? '' : 'hidden' ?>></div>
+<aside class="chwoo-bag-drawer<?= $chwooBagResume ? ' is-open is-restoring' : '' ?>" id="chwoo-bag-drawer" role="dialog" aria-modal="true" aria-labelledby="chwoo-bag-title" aria-hidden="<?= $chwooBagResume ? 'false' : 'true' ?>" <?= $chwooBagResume ? '' : 'inert' ?> data-open="<?= $chwooBagOpen ? 'true' : 'false' ?>" data-resume="<?= $chwooBagResume ? 'true' : 'false' ?>">
     <div class="chwoo-bag-top">
         <button type="button" class="chwoo-bag-close" aria-label="Close shopping bag">&times;</button>
         <h2 id="chwoo-bag-title">Your Bag</h2><span><?= $chwooBagCount ?> ITEM(S)</span>

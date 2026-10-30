@@ -1,6 +1,6 @@
 # CHWOO database
 
-CHWOO uses PHP/MySQLi with the `chwoo_db` database. The database has seven tables, with prices and images stored per colourway and inventory stored per colour/size variant. `schema.sql` defines the structure; `seed_products.sql` is the authoritative source for the demonstration catalogue.
+CHWOO uses PHP/MySQLi with the `chwoo_db` database. The database has eight tables, with prices and images stored per colourway, inventory stored per colour/size variant, and product-level wishlists linked to customers. `schema.sql` defines the complete structure; `seed_products.sql` is the authoritative source for the demonstration catalogue. No migration or previous SQL patch is needed for a fresh installation.
 
 ## Fresh installation with phpMyAdmin
 
@@ -12,14 +12,36 @@ These scripts are for fresh installations, not incremental migrations. Do not im
 2. Only when intentionally performing a fresh installation, delete the existing `chwoo_db` through phpMyAdmin. Skip deletion if it does not exist.
 3. In phpMyAdmin, import `database/schema.sql`. It creates/selects `chwoo_db` and creates the tables.
 4. Import `database/seed_products.sql` into the same MariaDB instance.
-5. Inspect both imports for errors/warnings and verify the seven tables and record counts below. A completion banner alone does not prove success.
-6. With Apache and MySQL running in XAMPP, test the CHWOO catalogue, product colour/size selection, stock validation, and shopping bag add/increase/decrease/remove controls.
+5. Inspect both imports for errors/warnings and verify the eight tables and record counts below. A completion banner alone does not prove success.
+6. With Apache and MySQL running in XAMPP, open `http://localhost:8000/chwoo/` (the verified local Apache port; use your configured port elsewhere). Register fictitious customers through the normal registration form, then test login, wishlist, product colour/size selection, stock validation, and shopping bag add/increase/decrease/remove controls. Fresh installations require only schema then product seed; accounts are created by registration. The corresponding local phpMyAdmin URL is `http://localhost:8000/phpmyadmin/`.
 
 Connection settings are in `php/db.php`, which selects `chwoo_db` and sets `utf8mb4`. Check these settings against the local installation.
 
 Repeated imports are not safe: `CREATE DATABASE IF NOT EXISTS` permits an empty database, but plain `CREATE TABLE` fails when tables already exist, and repeated seed inserts encounter duplicate primary/unique keys. DDL is not transactional, and an import client can continue after errors. Stop on failure and inspect database state before retrying; a final `COMMIT` does not prove that every statement succeeded. Use strict SQL mode when importing.
 
-The documented target is XAMPP MariaDB 10.4.32. The schema uses InnoDB, `utf8mb4_unicode_ci`, CHECK constraints and MariaDB's `PERSISTENT` generated-column syntax. Actual local engine acceptance has not been tested in the static audit; compatibility with a different MySQL/MariaDB version must be verified before importing.
+The local server was verified read-only as XAMPP MariaDB 10.4.32 during Task 04C. The schema uses InnoDB, `utf8mb4_unicode_ci`, CHECK constraints and MariaDB's `PERSISTENT` generated-column syntax. The updated schema has not been imported during this task; compatibility with a different MySQL/MariaDB version must be verified before importing.
+
+## Optional existing-database installation for Task 04C
+
+The preferred workflow is the reviewed fresh import above. To keep the currently installed accounts/catalogue instead, select **chwoo_db → SQL** in phpMyAdmin and execute the following statement once. Do not import the full schema or seed over the existing tables. First verify that `customers.customer_id` and `products.product_id` are `INT UNSIGNED` primary keys on InnoDB tables, and that no `wishlist` table exists. If one already exists, inspect its structure instead of rerunning this statement.
+
+```sql
+CREATE TABLE wishlist (
+    wishlist_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    customer_id INT UNSIGNED NOT NULL,
+    product_id INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (wishlist_id),
+    UNIQUE KEY uq_wishlist_customer_product (customer_id, product_id),
+    KEY idx_wishlist_product (product_id),
+    CONSTRAINT fk_wishlist_customer FOREIGN KEY (customer_id)
+        REFERENCES customers (customer_id) ON DELETE CASCADE,
+    CONSTRAINT fk_wishlist_product FOREIGN KEY (product_id)
+        REFERENCES products (product_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+Inspect the result for errors, then use **wishlist → Structure** to verify its primary key, unique customer/product index, product index and both foreign keys. The new table starts with zero rows and does not alter other tables or records. No local update SQL script or migrations directory is required. Database installation is left to the user; the application does not create tables automatically.
 
 ## Tables and integrity
 
@@ -30,6 +52,7 @@ The documented target is XAMPP MariaDB 10.4.32. The schema uses InnoDB, `utf8mb4
 | `product_colours` | `colour_id` | `product_id` FK to `products`; colour name, `swatch_hex`, unique image path, decimal price and default flag. Unique `(product_id, colour_name)`. |
 | `product_variants` | `variant_id` | `colour_id` FK to `product_colours`, `size_code` FK to `size_guide`, and stock quantity. Unique `(colour_id, size_code)`; the sole inventory authority. |
 | `customers` | `customer_id` | Full name, unique email, password hash and creation timestamp. No demonstration accounts. |
+| `wishlist` | `wishlist_id` | `customer_id` FK to `customers`, `product_id` FK to `products`, and saved timestamp. Unique `(customer_id, product_id)` prevents duplicate saves. Both FKs use `ON DELETE CASCADE` to remove orphan favourites. |
 | `orders` | `order_id` | `customer_id` FK to `customers`; recipient/contact/delivery snapshots, subtotal, shipping, total, payment/order states and timestamps. |
 | `order_items` | `order_item_id` | `order_id` FK to `orders`, `variant_id` FK to `product_variants`; quantity, unit price and purchased name/size/colour snapshots. |
 
@@ -39,7 +62,7 @@ A product has colourways, and each seeded colourway has four size variants using
 
 The generated `default_product_id` unique index permits at most one default colour per product while allowing multiple nondefaults. Each seeded product has exactly one default, but SQL does not enforce at least one after arbitrary edits. Change defaults transactionally, clearing the old default first. Products 7, 8 and 13 use colour IDs 7, 8 and 13 as their defaults.
 
-All foreign keys use restrictive default delete/update behaviour. Deactivate referenced products rather than deleting them, and do not repurpose purchased variant or colour identities. Order-item product identity follows variant → colour → product; there is no redundant product FK. Snapshot columns support historical purchase details, but SQL does not populate or make those snapshots immutable.
+Foreign keys use restrictive default delete/update behaviour except the wishlist's two delete cascades. Deactivate referenced products rather than deleting them, and do not repurpose purchased variant or colour identities. Order-item product identity follows variant → colour → product; there is no redundant product FK. Snapshot columns support historical purchase details, but SQL does not populate or make those snapshots immutable.
 
 CHECK constraints validate boolean flags, size codes, nonnegative prices/stock/amounts, positive purchased quantities and `total_amount = item_subtotal + shipping_charge`. IDs and stock use unsigned integer types; money uses decimal types in SGD. Row constraints cannot validate an order subtotal against all its items, require a nonempty order or handle concurrent checkout. Those checks are not implemented by the current bag.
 
@@ -84,10 +107,11 @@ Catalogue caveats:
 | `size_guide` | 4 |
 | `product_variants` | 64 |
 | `customers` | 0 |
+| `wishlist` | 0 |
 | `orders` | 0 |
 | `order_items` | 0 |
 
-There are seven tables. Three products have two colourways and ten have one. Every colourway has four sizes (XS, S, M, L) with **5 demonstration units per variant**: 20 per colourway and **320 units total**. These are mock allocations, not real inventory.
+There are eight tables. Three products have two colourways and ten have one. Every colourway has four sizes (XS, S, M, L) with **5 demonstration units per variant**: 20 per colourway and **320 units total**. These are mock allocations, not real inventory. Task 04C leaves `seed_products.sql` unchanged: the wishlist has no required seed rows and references the existing product IDs. No customer, order or wishlist fixtures are part of the general website seed.
 
 Variant IDs are seeded as `(colour_id - 1) * 4 + sort_order` (1–64). Application code queries stored IDs rather than calculating them. Only `product_variants.stock_quantity` stores stock. Editing the seed file does not update an installed database.
 
@@ -102,16 +126,54 @@ Variant IDs are seeded as `(colour_id - 1) * 4 + sort_order` (1–64). Applicati
 | `php/bag.php` | Shared bag data and controls. Reads current names, sizes, images, prices and stock from variant/colour/product joins; removes obsolete or invalid entries and flags unavailable quantities. |
 | `php/bag_action.php` | CSRF-protected increase/decrease/remove operations. Increases recheck the exact active variant's current stock. |
 | `php/cart.php`, `php/bag_drawer.php` | Full bag and drawer using the same shared session bag and totals. |
+| `php/auth.php`, `php/auth_action.php`, `php/login.php` | Registration with PHP password hashes, login/logout and session identity. Normal authentication opens Account; pending wishlist authentication saves the intended product and returns to the original internal page. Shared return-path allowlist and CSRF token also serve bag/wishlist forms. |
+| `php/wishlist.php`, `php/wishlist_action.php` | Prepared wishlist reads/writes scoped to the session customer. POST/Redirect/GET saves/removes products; duplicate saves are idempotent. Guests retain one pending product and validated return path through login or registration. |
+| `php/account.php` | Existing account navigation and details/orders, plus real Wishlist cards with current catalogue image/price, product links, removal controls and an empty state. |
+| `css/wishlist.css` | Product-detail outline/filled hearts and scoped responsive account cards with neutral text removal controls. Home, Shop and New In have no wishlist controls or wishlist reads. |
 
 `$_SESSION['chwoo_cart']` is keyed by `variant_id`; each entry stores `variant_id` and `quantity`. Display details and prices are retrieved from the database. The bag does not reserve or decrement database stock, and quantities can become unavailable after another stock change.
 
 Demonstration delivery is **SGD 5 for a nonempty bag below SGD 80**, and free from SGD 80. An empty bag has no delivery charge. This rule is implemented in `chwooDeliveryCharge()` in `php/bag.php`.
 
-Authentication, checkout, payment processing and database order recording are not implemented. The `customers`, `orders` and `order_items` tables provide supporting structure only. The checkout control currently shows a pending message without placing an order; wishlist actions remember a sign-in intent rather than saving an authenticated wishlist. No card data should be stored.
+Checkout, payment processing and database order recording are not implemented. The checkout control currently shows a pending message without placing an order. No card data should be stored.
+
+## Wishlist behaviour and security
+
+On the product detail page, an outline heart saves the product and a filled heart removes it. Both use CSRF-protected POST forms and a 303 redirect to the same page, preserving product colour/size selection. Account → Wishlist lists saved products with removal controls that return to that section. Home, Shop, New In and other listing grids do not offer wishlist controls. State is loaded from the database on product/account requests and survives logout and subsequent login; account-specific pages use `Cache-Control: no-store`. Different colourways/sizes of the same product share one heart state.
+
+Guest saves validate the active product before remembering `chwoo_pending_wishlist_product_id` and `chwoo_pending_wishlist_return_to` in the session. Login errors and switching between login/registration retain the intent. Successful authentication regenerates the session ID, saves once (never toggles), consumes the pending intent, and redirects to the validated original path. Ordinary login/registration still opens Account. Logout clears pending intent and authentication, preserving the existing session bag and CSRF convention.
+
+Return destinations pass the same explicit internal-page/query-field allowlist used by bag forms, both when stored and when consumed; external URLs, protocol-relative URLs and arbitrary paths fall back to Shop. Persistent modifications take the customer ID only from the session and verify that the account still exists. Product IDs are bounded unsigned integers; saves require a real active product with a colourway. SQL uses prepared statements and ownership predicates, with foreign keys and a unique index enforcing integrity. No client-supplied customer ID is used. All displayed catalogue/customer text is escaped and image paths use the existing local-image validator. There is no AJAX, fetch or JSON endpoint.
+
+Wishlist cards load current default-colour details (falling back to the first remaining colour when a product has no default); colour/size details and prices are not copied into `wishlist`. Inactive products or products without colours remain removable with a “Currently unavailable” label. Deleted products cascade out of the wishlist when deletion is otherwise permitted by catalogue/order FKs. Out-of-stock active products may still be saved; wishlist saving does not reserve stock. A missing wishlist table/read failure produces an unavailable message and disabled authenticated hearts, rather than a fabricated empty wishlist. Failed writes show a failure notice. Failed pending saves still complete authentication and return to the originating page with an explicit failure notice.
+
+No demo-account SQL fixture is needed: reproducible testing uses fictitious accounts created through registration, with passwords hashed by the existing PHP flow. Do not seed test customers, orders or favourites into `seed_products.sql`.
 
 ## Verification boundaries
 
-Static inspection confirms that the schema, seed counts, colour/swatches and existing PHP query column names agree. This does not establish the state of an installed database or prove live SQL parsing, constraint enforcement or end-to-end website behaviour. No database import or live database modification was performed during Task 03E.
+Initial Task 04C checks (historical, before the Task 04C.1 listing-scope correction):
+
+- All 17 PHP files pass XAMPP PHP 8.2.12 syntax checks; all existing JavaScript files pass `node --check`; `git diff --check` passes. New files were also checked for whitespace errors.
+- Static checks confirm eight canonical table definitions, identical wishlist CREATE TABLE statements in this README and `schema.sql`, and an unchanged `seed_products.sql`.
+- Read-only MariaDB checks confirm version 10.4.32, seven currently installed InnoDB tables (wishlist absent), unsigned parent keys, and installed counts of 13 products, 16 colours and 64 variants. No database import or persistent database write was performed.
+- A 26-request local HTTP regression passed against the actual PHP application with a disposable session: Home/Shop/New In/product rendering, no-store headers, POST-only handling, invalid CSRF/ID/action rejection, nonexistent-product rejection, guest product/filter/pagination return intents, failed-login and registration-view intent retention, external return rejection, bag add/increase/decrease/remove, and logout/bag preservation. The test runner removed its disposable session; no customer, order or wishlist rows were created.
+- PHP helper checks passed for ID bounds/types, internal return-path/query filtering, escaped outline/filled heart markup, form routing, and guest state. A separate read-only check confirmed missing-table reads report unknown/unavailable state, absent customer validation, and rejection of an absent product before any DELETE.
+- Browser checks confirmed catalogue hearts reach sign-in with the save-intent message, selected colour/size display, and a product heart reaches sign-in without requiring a bag size selection. The catalogue and sign-in layouts were visually inspected at the browser's existing viewport. Account cards and other responsive breakpoints have not received browser verification.
+
+Task 04C.1 checks against the installed local wishlist table:
+
+- A 39-request HTTP regression passed using one disposable fictitious customer: product save/remove, correct Account product/image/default-colour price, Account removal and empty state, guest registration and login returns, ordinary login to Account, refresh and new-session login persistence, authenticated CSRF rejection, and absence of listing-page controls/styles on Home, Shop, both New In pages and Collections.
+- Drawer increase/decrease/remove passed with updated messages, quantities, shipping, totals and the empty state. Tests verified that the initial response HTML contains an already-open drawer and overlay, no drawer `inert` attribute, `aria-hidden="false"`, and the transition-suppression class. Add-to-bag retains the ordinary `bag=open` flow.
+- Browser checks confirmed the polished Wishlist layout and Account removal. All three drawer updates kept it open with the correct contents/totals. Restored state had zero horizontal translation, visible overlay, background scroll lock and focus on Close. Close/manual reopen and Escape were also exercised; the regular 0.3-second transition was restored. The browser's pre-existing bag item was preserved, and only the separate item added for this check was removed.
+- The HTTP test customer's account and wishlist rows were removed after testing; no general seed/demo fixture was created. No schema or seed change, import or database rebuild was required for Task 04C.1. Existing application authentication and persistence logic were retained.
+
+Remaining coverage from the broader original task: two-customer isolation, direct duplicate/FK rejection, inactive/no-colour product handling and product-delete cascades have not received a complete live regression. Account-delete wishlist cleanup was exercised. Visual checks used the existing browser viewport; other responsive breakpoints were not separately tested. The drawer still uses a full server POST/Redirect/GET reload; this fix bypasses the fresh opening transition on its returned page rather than introducing AJAX.
+
+For the manual demonstration, register fictitious customers using the ordinary form. Browse a filtered Shop or paginated New In listing, open a product, then save it there. Verify the original product colour/size URL after authentication or toggling, and check Account → Wishlist. Wishlist is product-level, so product 8's default-colour dashboard price is SGD 46.00 even when colour 9's product page displays SGD 44.00. Remove demonstration favourites using their normal controls. No demo SQL fixture or local-only update SQL script was created.
+
+## Drawer update presentation
+
+Drawer quantity/remove forms keep their existing CSRF-protected PHP POST processing and current stock/totals calculations. Their 303 redirects now append `bag=updated`; full-bag controls keep their original redirects. `bag_drawer.php` renders that response with the drawer/overlay already open and a temporary `is-restoring` class that disables transitions. The existing small vanilla JavaScript initialises focus, inert background and scroll lock immediately, then removes the suppression after the open state has painted. Ordinary BAG clicks and add-to-bag (`bag=open`) still use the normal opening animation. Flash messages and totals remain server-rendered, including when removal empties the bag.
 
 After an intentional fresh installation, these read-only queries can check the expected counts and total demonstration stock:
 
@@ -121,6 +183,7 @@ UNION ALL SELECT 'product_colours', COUNT(*) FROM product_colours
 UNION ALL SELECT 'size_guide', COUNT(*) FROM size_guide
 UNION ALL SELECT 'product_variants', COUNT(*) FROM product_variants
 UNION ALL SELECT 'customers', COUNT(*) FROM customers
+UNION ALL SELECT 'wishlist', COUNT(*) FROM wishlist
 UNION ALL SELECT 'orders', COUNT(*) FROM orders
 UNION ALL SELECT 'order_items', COUNT(*) FROM order_items;
 
@@ -135,4 +198,4 @@ GROUP BY c.colour_id
 HAVING COUNT(v.variant_id) <> 4 OR COALESCE(SUM(v.stock_quantity), 0) <> 20;
 ```
 
-Actual import success, local engine constraint enforcement and database-backed website tests remain to be verified. These expected stock totals apply to the fresh demonstration seed, before any inventory changes.
+The complete fresh schema/seed import was not rerun during Task 04C.1; database-backed website checks used the already-installed local tables. Broader constraint coverage remains as noted above. These expected stock totals apply to the fresh demonstration seed, before any inventory changes.

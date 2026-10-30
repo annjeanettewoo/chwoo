@@ -1,6 +1,7 @@
 <?php
 // Shared session bag data. Include before output on pages that offer the drawer.
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/auth.php';
 
 function chwooEscape($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -10,26 +11,6 @@ function chwooImageUrl($path, $rootUrl) {
     return preg_match('~^images/[a-zA-Z0-9_./-]+$~', $path)
         && !str_contains($path, '..') && is_file(__DIR__ . '/../' . $path)
         ? $rootUrl . $path : '';
-}
-
-// Only these local pages and query fields may be used after a bag POST.
-function chwooReturnTo($value) {
-    $allowed = ['index.php', 'php/shop.php', 'php/newin.php', 'php/product.php',
-                'php/cart.php', 'php/collections.php'];
-    if (!is_string($value) || strlen($value) > 1000) { return 'php/cart.php'; }
-    $parts = parse_url($value);
-    if ($parts === false || isset($parts['scheme']) || isset($parts['host'])
-        || !in_array($parts['path'] ?? '', $allowed, true)) {
-        return 'php/cart.php';
-    }
-    parse_str($parts['query'] ?? '', $query);
-    $safeQuery = [];
-    foreach (['id', 'colour', 'size', 'page', 'category', 'sort'] as $key) {
-        if (isset($query[$key]) && is_string($query[$key]) && strlen($query[$key]) <= 80) {
-            $safeQuery[$key] = $query[$key];
-        }
-    }
-    return $parts['path'] . ($safeQuery ? '?' . http_build_query($safeQuery) : '');
 }
 
 // Demonstration policy: an empty bag is free; otherwise $5 below the $80 threshold.
