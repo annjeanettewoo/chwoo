@@ -1,7 +1,7 @@
 <?php
 // CHWOO Product Details | IE4727
 // Reads product information from MySQL and stores the shopping bag in a PHP session.
-session_start();
+require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/bag.php';
 
 function e($value) {
@@ -159,31 +159,11 @@ if ($product && $selectedColour) {
     <link rel="stylesheet" href="<?= chwooEscape($chwooRootUrl) ?>css/bag.css">
 </head>
 <body class="shop-page product-page">
-    <div class="announcement-bar">FREE STANDARD COURIER DELIVERY WITH SGD$80 SPENT</div>
-    <header class="shop-header">
-        <nav class="navbar" aria-label="Main navigation">
-            <a class="logo-link" href="../index.php">
-                <img class="logo" src="../images/chwoo-logo.png" alt="CHWOO Fashion Studio">
-            </a>
-            <div class="main-nav">
-                <a href="newin.php">NEW IN</a>
-                <a href="shop.php" aria-current="page">SHOP</a>
-                <a href="collections.php">COLLECTIONS</a>
-                <a href="../lookbook.html">LOOKBOOK</a>
-                <a href="../about.html">ABOUT</a>
-            </div>
-            <div class="nav-tools">
-                <span>SG | SGD $</span>
-                <a href="../search.html">SEARCH</a>
-                <a href="../login.html">ACCOUNT</a>
-                <a data-bag-trigger href="cart.php">BAG (<?= $bagCount ?>)</a>
-            </div>
-        </nav>
-    </header>
+    <?php include __DIR__ . '/header.php'; ?>
 
     <main class="shop-main product-main">
         <div class="breadcrumb">
-            <a href="../index.html">Home</a><span>/</span>
+            <a href="../index.php">Home</a><span>/</span>
             <a href="shop.php">Shop</a><span>/</span>
             <?= $product ? e($product['product_name']) : 'Product not found' ?>
         </div>
@@ -320,7 +300,7 @@ if ($product && $selectedColour) {
 
         <div class="footer-links">
 
-            <a href="php/shop.php">
+            <a href="shop.php">
                 Shop
             </a>
 
