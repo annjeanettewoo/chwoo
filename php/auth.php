@@ -20,6 +20,26 @@ function chwooAuthRootUrl() {
     return rtrim(basename($directory) === 'php' ? dirname($directory) : $directory, '/') . '/';
 }
 
+// Shared allowlist for ordinary form redirects; paths are relative to CHWOO.
+function chwooReturnTo($value, $fallback = 'php/cart.php') {
+    $allowed = ['index.php', 'php/shop.php', 'php/newin.php', 'php/product.php',
+                'php/cart.php', 'php/collections.php', 'php/account.php'];
+    if (!is_string($value) || strlen($value) > 1000) { return $fallback; }
+    $parts = parse_url($value);
+    if ($parts === false || isset($parts['scheme']) || isset($parts['host'])
+        || !in_array($parts['path'] ?? '', $allowed, true)) {
+        return $fallback;
+    }
+    parse_str($parts['query'] ?? '', $query);
+    $safeQuery = [];
+    foreach (['id', 'colour', 'size', 'page', 'category', 'sort', 'section'] as $key) {
+        if (isset($query[$key]) && is_string($query[$key]) && strlen($query[$key]) <= 80) {
+            $safeQuery[$key] = $query[$key];
+        }
+    }
+    return $parts['path'] . ($safeQuery ? '?' . http_build_query($safeQuery) : '');
+}
+
 function chwooAuthenticate($customer) {
     // Regeneration keeps the bag, shared CSRF token and pending wishlist intact.
     session_regenerate_id(true);

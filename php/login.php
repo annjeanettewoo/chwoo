@@ -1,6 +1,11 @@
 <?php
 require_once __DIR__ . '/auth.php';
 if (chwooCurrentCustomer()) {
+    require_once __DIR__ . '/wishlist.php';
+    if (isset($_SESSION['chwoo_pending_wishlist_product_id'])) {
+        require_once __DIR__ . '/db.php';
+        chwooWishlistAfterAuthentication($conn);
+    }
     header('Location: ' . chwooAuthRootUrl() . 'php/account.php', true, 303);
     exit;
 }
@@ -48,6 +53,9 @@ function chwooAuthField($name, $label, $type, $autocomplete, $attributes = '') {
     <main class="auth-main">
         <p class="auth-eyebrow">YOUR CHWOO</p>
         <h1><?= $title ?></h1>
+        <?php if (!empty($feedback['message'])): ?>
+            <p class="auth-intro" role="status"><?= chwooAuthEscape($feedback['message']) ?></p>
+        <?php endif; ?>
         <?php if (!empty($errors['form'])): ?>
             <p class="auth-form-error" role="alert"><?= chwooAuthEscape($errors['form']) ?></p>
         <?php endif; ?>

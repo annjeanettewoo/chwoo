@@ -46,7 +46,7 @@
     // Keep native radio keyboard behaviour; show our inline missing-size treatment on Add.
     form.noValidate = true;
     form.addEventListener('submit', function (event) {
-        if (event.submitter && event.submitter.value === 'wishlist') { return; }
+        if (event.submitter && event.submitter.classList.contains('chwoo-wishlist-button')) { return; }
         const size = form.querySelector('input[name="size"]:checked');
         if (!size) {
             event.preventDefault();

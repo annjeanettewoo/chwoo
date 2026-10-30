@@ -3,6 +3,8 @@
 // Reads product information from MySQL and stores the shopping bag in a PHP session.
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/bag.php';
+require_once __DIR__ . '/wishlist.php';
+$wishlistIds = chwooWishlistIds($conn, $wishlistError);
 
 function e($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -87,17 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $product) {
         $error = 'Please refresh the page and try again.';
     } elseif ($submittedProductId !== $productId) {
         $error = 'Invalid product selection.';
-    } elseif ($action === 'wishlist') {
-        // Task 04 can consume this intent after real authentication; no fake saved wishlist.
-        $_SESSION['chwoo_pending_wishlist_product_id'] = (int)$productId;
-        if (is_file(__DIR__ . '/login.php')) {
-            header('Location: login.php', true, 303);
-        } else {
-            $_SESSION['chwoo_flash'] = 'Please sign in to save this piece. Sign-in is coming soon; your wishlist request is remembered.';
-            $query = http_build_query(['id' => $productId, 'colour' => $selectedColourId, 'size' => $selectedSize]);
-            header('Location: product.php?' . $query, true, 303);
-        }
-        exit;
     } elseif ($action !== 'add') {
         $error = 'Unknown action.';
     } elseif (!in_array($selectedSize, $availableSizes, true)) {
@@ -155,11 +146,13 @@ if ($product && $selectedColour) {
     <!-- Keep the working shared Shop stylesheet: no edits needed. -->
     <link rel="stylesheet" href="../css/shop.css">
     <link rel="stylesheet" href="../css/product.css?v=3">
+    <link rel="stylesheet" href="../css/wishlist.css">
     <link rel="stylesheet" href="../css/footer.css">
     <link rel="stylesheet" href="<?= chwooEscape($chwooRootUrl) ?>css/bag.css">
 </head>
 <body class="shop-page product-page">
     <?php include __DIR__ . '/header.php'; ?>
+    <?php chwooWishlistNotice($wishlistError); ?>
 
     <main class="shop-main product-main">
         <div class="breadcrumb">
@@ -214,6 +207,7 @@ if ($product && $selectedColour) {
                         <form action="product.php?id=<?= (int)$productId ?>" method="post" class="product-form">
                             <input type="hidden" name="form_token" value="<?= e($_SESSION['chwoo_form_token']) ?>">
                             <input type="hidden" name="product_id" value="<?= (int)$productId ?>">
+                            <input type="hidden" name="return_to" value="<?= e($chwooReturnTo) ?>">
                             <div class="product-colour-header">
                                 <span>COLOUR</span>
                                 <span class="product-colour-value" id="selected-colour-name"><?= e($selectedColour['name']) ?></span>
@@ -254,8 +248,7 @@ if ($product && $selectedColour) {
                             <p id="stock-message" class="product-stock-message<?= $sizeError ? ' error' : ($selectedSize ? ($selectionAvailable ? ' success' : ' error') : '') ?>" role="status" aria-live="polite"><?= !$selectedSize ? 'Please choose a size.' : ($selectionAvailable ? 'Size ' . e($selectedSize) . ' is available.' : 'Size ' . e($selectedSize) . ' is unavailable in ' . e($selectedColour['name']) . '.') ?></p>
                             <div class="product-action-row">
                                 <button class="add-to-bag" type="submit" name="action" value="add" <?= $selectedSize && !$selectionAvailable ? 'disabled' : '' ?>>ADD TO BAG</button>
-                                <button class="wishlist-button" type="submit" name="action" value="wishlist" formnovalidate
-                                    aria-label="Sign in to save to wishlist" title="Sign in to save to wishlist">&#9825;</button>
+                                <?php chwooWishlistButton($product, $wishlistIds); ?>
                             </div>
                         </form>
                     <?php else: ?>

@@ -49,7 +49,7 @@ if (!is_string($token) || !hash_equals($_SESSION['chwoo_form_token'], $token)) {
 $_SESSION['chwoo_bag_flash'] = $message;
 $location = $chwooRootUrl . $returnTo;
 if ($context === 'drawer') {
-    $location .= (str_contains($returnTo, '?') ? '&' : '?') . 'bag=open';
+    $location .= (str_contains($returnTo, '?') ? '&' : '?') . 'bag=updated';
 }
 header('Location: ' . $location, true, 303);
 exit;

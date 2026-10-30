@@ -26,7 +26,7 @@ if ($headerShop): ?>
         <div class="nav-tools">
             <span>SG | SGD $</span>
             <a href="<?= chwooAuthEscape($headerRoot) ?>search.html">SEARCH</a>
-            <a class="chwoo-account-link" href="<?= chwooAuthEscape($headerRoot) ?>php/<?= chwooCurrentCustomer() ? 'account.php' : 'login.php' ?>" <?= in_array($headerPage, ['login.php', 'account.php'], true) ? 'aria-current="page"' : '' ?>><?= chwooCurrentCustomer() ? 'Account' : 'LOGIN' ?></a>
+            <a class="chwoo-account-link" href="<?= chwooAuthEscape($headerRoot) ?>php/<?= chwooCurrentCustomer() ? 'account.php' : 'login.php' ?>" <?= in_array($headerPage, ['login.php', 'account.php'], true) ? 'aria-current="page"' : '' ?>><?= chwooCurrentCustomer() ? 'ACCOUNT' : 'LOGIN' ?></a>
             <a data-bag-trigger href="<?= chwooAuthEscape($headerRoot) ?>php/cart.php">BAG (<?= (int)$chwooBagCount ?>)</a>
         </div>
     </nav>

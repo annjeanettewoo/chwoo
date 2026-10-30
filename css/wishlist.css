@@ -1,0 +1,33 @@
+/* Product-detail hearts and account favourites; no listing-card controls. */
+.chwoo-wishlist-form { margin: 0; }
+.chwoo-wishlist-button {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; padding: 10px; border: 1px solid #4B2E1F;
+    background: #fffdf6; color: #4B2E1F; cursor: pointer; border-radius: 0;
+}
+.chwoo-wishlist-button svg { flex: 0 0 24px; }
+.chwoo-wishlist-button.is-saved, .product-page .chwoo-wishlist-button.is-saved { color: #4B2E1F; background: #FFF3C2; }
+.chwoo-wishlist-button:hover { background: #BED1E1; }
+.chwoo-wishlist-button:focus-visible { outline: 3px solid #50768e; outline-offset: 3px; }
+.chwoo-wishlist-button:disabled { cursor: not-allowed; opacity: .5; }
+.product-page .product-action-row .chwoo-wishlist-button { width: 100%; height: 55px; }
+.chwoo-wishlist-notice { padding: 14px 20px; margin: 20px 5%; background: #FFF3C2; color: #4B2E1F; font-size: 14px; }
+.account-wishlist-intro { font-size: 13px; color: #745c4d; }
+.account-wishlist-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px 20px; margin-top: 26px; }
+.account-wishlist-card { min-width: 0; display: flex; flex-direction: column; padding: 12px; background: #fff; border: 1px solid #eee7dd; }
+.account-wishlist-link { display: block; color: #4B2E1F; text-decoration: none; }
+.account-wishlist-photo { display: flex; align-items: center; justify-content: center; aspect-ratio: 3 / 4; background: white; }
+.account-wishlist-photo img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.account-wishlist-photo span { font-size: 12px; padding: 20px; text-align: center; }
+.account-wishlist-card h3 { margin: 14px 0 4px; font-size: 14px; font-weight: normal; }
+.account-wishlist-price, .account-wishlist-unavailable { margin: 4px 0 12px; font-size: 13px; }
+.account-wishlist-unavailable { color: #745c4d; }
+.chwoo-wishlist-remove { margin-top: auto; padding-top: 6px; }
+.chwoo-wishlist-remove .chwoo-wishlist-button {
+    width: 100%; height: auto; min-height: 40px; padding: 9px 12px;
+    border-color: #cbbcb1; background: #fffdf6; color: #4B2E1F;
+    font: 12px Arial, sans-serif;
+}
+.chwoo-wishlist-remove .chwoo-wishlist-button:hover { background: #f4efe7; border-color: #4B2E1F; }
+@media (max-width: 1100px) { .account-wishlist-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .account-wishlist-grid { grid-template-columns: 1fr; } }

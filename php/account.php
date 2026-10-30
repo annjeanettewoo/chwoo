@@ -35,6 +35,16 @@ if (in_array($section, ['dashboard', 'orders'], true)) {
     $stmt->close();
 }
 require_once __DIR__ . '/bag.php';
+require_once __DIR__ . '/wishlist.php';
+$wishlistItems = [];
+$wishlistError = '';
+if ($section === 'wishlist') {
+    try {
+        $wishlistItems = chwooWishlistItems($conn, $customerId);
+    } catch (mysqli_sql_exception $exception) {
+        $wishlistError = 'Your wishlist is temporarily unavailable. Please try again later.';
+    }
+}
 $firstName = explode(' ', $customer['full_name'])[0];
 ?>
 <!DOCTYPE html>
@@ -48,6 +58,7 @@ $firstName = explode(' ', $customer['full_name'])[0];
     <link rel="stylesheet" href="../css/footer.css">
     <link rel="stylesheet" href="../css/bag.css">
     <link rel="stylesheet" href="../css/account.css">
+    <link rel="stylesheet" href="../css/wishlist.css">
 </head>
 <body class="account-page">
 <?php include __DIR__ . '/header.php'; ?>
@@ -102,7 +113,35 @@ $firstName = explode(' ', $customer['full_name'])[0];
         </section>
         <?php endif; ?>
         <?php if ($section === 'wishlist'): ?>
-        <section class="account-section"><div class="account-empty"><span class="account-empty-mark" aria-hidden="true">&#9825;</span><h2>A home for your favourites.</h2><p>Saving a wishlist to your account is coming soon.<br>Account-linked favourites are not available just yet.</p><a class="account-text-link" href="shop.php">Keep exploring &rarr;</a></div></section>
+        <section class="account-section" aria-label="Saved products">
+            <?php if ($wishlistError): chwooWishlistNotice($wishlistError); ?>
+            <?php elseif (!$wishlistItems): ?>
+            <div class="account-empty"><span class="account-empty-mark" aria-hidden="true">&#9825;</span><h2>A home for your favourites.</h2><p>See something you love? Tap its heart.<br>Your saved pieces will be waiting here.</p><a class="account-text-link" href="shop.php">Find your favourites &rarr;</a></div>
+            <?php else: ?>
+            <h2>Your favourite pieces</h2>
+            <p class="account-wishlist-intro">Saved by product. Images and prices show the current default colour.</p>
+            <div class="account-wishlist-grid">
+                <?php foreach ($wishlistItems as $item): ?>
+                <?php
+                $imageUrl = chwooImageUrl((string)($item['image_path'] ?? ''), $chwooRootUrl);
+                $available = (int)$item['is_active'] === 1 && $item['colour_id'] !== null;
+                ?>
+                <article class="account-wishlist-card">
+                    <?php if ($available): ?><a class="account-wishlist-link" href="product.php?id=<?= (int)$item['product_id'] ?>"><?php endif; ?>
+                        <div class="account-wishlist-photo">
+                            <?php if ($imageUrl): ?><img src="<?= chwooEscape($imageUrl) ?>" alt="<?= chwooEscape($item['product_name']) ?>" loading="lazy">
+                            <?php else: ?><span>Product photo unavailable</span><?php endif; ?>
+                        </div>
+                        <h3><?= chwooEscape($item['product_name']) ?></h3>
+                    <?php if ($available): ?></a><?php endif; ?>
+                    <?php if ($available): ?><p class="account-wishlist-price">SGD $<?= number_format((float)$item['price'], 2) ?></p>
+                    <?php else: ?><p class="account-wishlist-unavailable">Currently unavailable</p><?php endif; ?>
+                    <?php chwooWishlistForm($item, [(int)$item['product_id'] => true], 'php/account.php?section=wishlist', true); ?>
+                </article>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+        </section>
         <?php endif; ?>
         <?php if ($section === 'cards'): ?>
         <section class="account-section"><div class="account-empty"><span class="account-empty-mark" aria-hidden="true">&mdash;</span><h2>No saved cards.</h2><p>Saving payment cards is not available at CHWOO.<br>There are no payment cards stored in your account.</p><a class="account-text-link" href="shop.php">Back to the collection &rarr;</a></div></section>

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/wishlist.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -13,7 +14,8 @@ if (!is_string($token) || !hash_equals($_SESSION['chwoo_form_token'], $token)) {
     chwooAuthRedirect('', ['form' => 'Please refresh this page and try again.'], [], $view);
 }
 if ($action === 'logout') {
-    unset($_SESSION['chwoo_customer']);
+    unset($_SESSION['chwoo_customer'], $_SESSION['chwoo_pending_wishlist_product_id'],
+        $_SESSION['chwoo_pending_wishlist_return_to']);
     session_regenerate_id(true);
     chwooAuthHome('You have been logged out.');
 }
@@ -21,6 +23,10 @@ if (!in_array($action, ['register', 'login'], true)) {
     chwooAuthRedirect('', ['form' => 'Please choose a valid account action.']);
 }
 if (chwooCurrentCustomer()) {
+    if (isset($_SESSION['chwoo_pending_wishlist_product_id'])) {
+        require_once __DIR__ . '/db.php';
+        chwooWishlistAfterAuthentication($conn);
+    }
     chwooAuthAccount('You are already logged in.');
 }
 // Treat array-shaped submissions as missing fields, rather than PHP type errors.
@@ -77,6 +83,7 @@ try {
         $customer = ['customer_id' => $conn->insert_id, 'full_name' => $fullName];
         $stmt->close();
         chwooAuthenticate($customer);
+        chwooWishlistAfterAuthentication($conn);
         chwooAuthAccount('Welcome to CHWOO. Your account has been created.');
     }
     $stmt = $conn->prepare('SELECT customer_id, full_name, password_hash FROM customers WHERE email = ? LIMIT 1');
@@ -88,6 +95,7 @@ try {
         chwooAuthRedirect('', ['password' => 'Incorrect email or password. Please try again.'], $old);
     }
     chwooAuthenticate($customer);
+    chwooWishlistAfterAuthentication($conn);
     chwooAuthAccount('Welcome back. You are now logged in.');
 } catch (mysqli_sql_exception $error) {
     // The unique index handles duplicates, including concurrent registrations.
