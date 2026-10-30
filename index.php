@@ -1,7 +1,7 @@
 <?php
 // CHWOO Homepage | IE4727 Base Version
 // Preserve the original CHWOO homepage design; only the four product cards load from MySQL.
-session_start();
+require_once __DIR__ . '/php/auth.php';
 require_once __DIR__ . '/php/bag.php';
 
 // Escape database text before displaying it in HTML.
@@ -56,66 +56,7 @@ $bagCount = $chwooBagCount;
          SITE HEADER
          ======================================== -->
 
-    <header class="site-header">
-
-        <!-- Announcement Bar -->
-        <div class="announcement-bar">
-            FREE STANDARD COURIER DELIVERY WITH SGD$80 SPENT
-        </div>
-
-        <!-- Navigation -->
-        <nav class="navbar">
-
-            <!-- Logo -->
-            <a href="index.php" class="logo-link">
-                <img src="images/chwoo-logo.png" alt="CHWOO Fashion Studio" class="logo">
-            </a>
-
-            <!-- Main Navigation -->
-            <div class="main-nav">
-
-                <a href="php/newin.php">
-                    NEW IN
-                </a>
-
-                <a href="php/shop.php">
-                    SHOP
-                </a>
-
-                <a href="php/collections.php">
-                    COLLECTIONS
-                </a>
-
-                <a href="lookbook.html">
-                    LOOKBOOK
-                </a>
-
-                <a href="about.html">
-                    ABOUT
-                </a>
-            </div>
-
-            <!-- Right Navigation -->
-            <div class="nav-tools">
-
-                <span>
-                    SG | SGD $
-                </span>
-
-                <a href="search.html">
-                    SEARCH
-                </a>
-
-                <a href="login.html">
-                    ACCOUNT
-                </a>
-
-                <a data-bag-trigger href="php/cart.php">
-                    BAG <span>(<?= $bagCount ?>)</span>
-                </a>
-            </div>
-        </nav>
-    </header>
+    <?php include __DIR__ . '/php/header.php'; ?>
 
     <!-- ========================================
          HERO SECTION

@@ -1,7 +1,7 @@
 <?php
 // CHWOO | Basic shopping bag stored in a PHP session.
 // Database orders will be created in a later checkout step.
-session_start();
+require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/bag.php';
 function e($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -26,29 +26,9 @@ if (!$drawerOpen) { $chwooBagMessage = ''; }
     <link rel="stylesheet" href="<?= chwooEscape($chwooRootUrl) ?>css/bag.css">
 </head>
 <body class="shop-page bag-page">
-    <div class="announcement-bar">FREE STANDARD COURIER DELIVERY WITH SGD$80 SPENT</div>
-    <header class="shop-header">
-        <nav class="navbar" aria-label="Main navigation">
-            <a class="logo-link" href="../index.php">
-                <img class="logo" src="../images/chwoo-logo.png" alt="CHWOO Fashion Studio">
-            </a>
-            <div class="main-nav">
-                <a href="newin.php">NEW IN</a>
-                <a href="shop.php">SHOP</a>
-                <a href="../collections.html">COLLECTIONS</a>
-                <a href="../lookbook.html">LOOKBOOK</a>
-                <a href="../about.html">ABOUT</a>
-            </div>
-            <div class="nav-tools">
-                <span>SG | SGD $</span>
-                <a href="../search.html">SEARCH</a>
-                <a href="../login.html">ACCOUNT</a>
-                <a data-bag-trigger href="cart.php" aria-current="page">BAG (<?= $bagCount ?>)</a>
-            </div>
-        </nav>
-    </header>
+    <?php include __DIR__ . '/header.php'; ?>
     <main class="shop-main">
-        <div class="breadcrumb"><a href="../index.html">Home</a><span>/</span>Bag</div>
+        <div class="breadcrumb"><a href="../index.php">Home</a><span>/</span>Bag</div>
         <p class="shop-eyebrow">CHWOO COLLECTION</p>
         <h1 class="shop-title">Shopping Bag</h1>
         <p class="shop-description"><?= $bagCount ?> item(s)</p>
@@ -103,7 +83,7 @@ if (!$drawerOpen) { $chwooBagMessage = ''; }
 
         <div class="footer-links">
 
-            <a href="php/shop.php">
+            <a href="shop.php">
                 Shop
             </a>
 

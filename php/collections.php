@@ -3,20 +3,13 @@
 // Uses the same global CSS, header and footer classes as the existing website.
 // Image placeholders disappear automatically when you add the named image files.
 
-session_start();
+require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/bag.php';
 $bagCount = $chwooBagCount;
 
-// These URLs should match the actual filenames in your CHWOO project.
-$homeUrl = 'index.html';
-$newInUrl = 'newin.html';
-$shopUrl = 'php/shop.php';
-$collectionsUrl = 'collections.php';
-$lookbookUrl = 'lookbook.html';
+// Content links are relative to this PHP page; navigation lives in header.php.
+$shopUrl = 'shop.php';
 $aboutUrl = 'about.html';
-$searchUrl = 'search.html';
-$accountUrl = 'login.html';
-$cartUrl = 'php/cart.php';
 
 // Keep the image folder inside the existing /images directory.
 // PHP checks for the optional pictures so missing images display labelled placeholders.
@@ -52,30 +45,7 @@ function collectionImage(string $filename, string $alt, string $placeholderText)
 <body class="collections-page">
 
     <!-- Original website header and announcement bar -->
-    <header class="site-header">
-        <div class="announcement-bar">
-            FREE STANDARD COURIER DELIVERY WITH SGD$80 SPENT
-        </div>
-        <nav class="navbar" aria-label="Main navigation">
-            <a href="<?= htmlspecialchars($homeUrl) ?>" class="logo-link">
-                <img src="../images/chwoo-logo.png" alt="CHWOO Fashion Studio" class="logo">
-            </a>
-            <div class="main-nav">
-                <a href="newin.php">NEW IN</a>
-                <a href="shop.php" aria-current="page">SHOP</a>
-                <a href="collections.php">COLLECTIONS</a>
-                <a href="../lookbook.html">LOOKBOOK</a>
-                <a href="../about.html">ABOUT</a>
-            </div>
-            <div class="nav-tools">
-                <span>SG | SGD $</span>
-                <a href="../search.html">SEARCH</a>
-                <a href="../login.html">ACCOUNT</a>
-                <a data-bag-trigger href="cart.php">BAG (<?= $bagCount ?>)</a>
-            </div>
-        </nav>
-        </nav>
-    </header>
+    <?php include __DIR__ . '/header.php'; ?>
 
     <main>
         <!-- Same heading hierarchy as the Shop page -->

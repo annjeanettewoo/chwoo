@@ -1,0 +1,32 @@
+/* Account forms only; navigation retains CHWOO's shared header styling. */
+.auth-page { background: var(--warm-white); }
+.auth-main { width: min(460px, calc(100% - 40px)); margin: 76px auto 110px; text-align: center; line-height: 1.6; }
+.auth-eyebrow { font-size: 11px; font-weight: bold; letter-spacing: 3px; margin: 0 0 14px; }
+.auth-main h1 { font-size: clamp(30px, 4vw, 40px); font-weight: normal; line-height: 1.2; margin: 0 0 20px; }
+.auth-intro { margin: 0 0 36px; font-size: 14px; }
+.auth-main form { text-align: left; }
+.auth-field { margin-top: 24px; }
+.auth-field label { display: block; font-size: 13px; margin-bottom: 8px; }
+.auth-field input { width: 100%; height: 50px; padding: 12px 14px; border: 1px solid #ab978a; background: white; border-radius: 0; color: var(--brown); font: inherit; font-size: 16px; }
+.auth-field input:hover { border-color: var(--brown); }
+.auth-field input[aria-invalid="true"] { border-color: #a14636; background: #fffaf8; }
+.auth-field-error, .auth-form-error { color: #963e2f; font-size: 13px; margin: 7px 0 0; text-align: left; }
+.auth-form-error { padding: 12px 0; }
+.auth-help { font-size: 12px; color: #705d51; margin: 8px 0 0; text-align: left; }
+.auth-submit { width: 100%; min-height: 52px; margin-top: 32px; border: 1px solid var(--brown); background: var(--brown); color: var(--warm-white); font: bold 13px Arial, sans-serif; letter-spacing: 1px; cursor: pointer; transition: background-color .15s; }
+.auth-submit:hover { background: #6a4732; }
+.auth-submit:disabled { opacity: .55; cursor: wait; }
+.auth-main a { color: var(--brown); text-underline-offset: 4px; }
+.auth-main a:hover { color: #73513c; }
+.auth-switch { margin-top: 28px; font-size: 13px; }
+.auth-welcome { margin-top: 32px; font-size: 22px; overflow-wrap: anywhere; }
+.auth-account-links { display: flex; justify-content: center; gap: 24px; margin: 32px 0; font-size: 14px; }
+.auth-page :focus-visible { outline: 3px solid #50768e; outline-offset: 3px; }
+@media (max-width: 700px) {
+    .auth-main { margin: 46px auto 72px; }
+    .auth-page .navbar { flex-wrap: wrap; align-items: center; gap: 20px 0; }
+    .auth-page .logo-link { margin-right: 16px; }
+    .auth-page .main-nav { display: flex; order: 3; width: 100%; justify-content: center; flex-wrap: wrap; gap: 14px 20px; }
+    .auth-page .main-nav a { font-size: 11px; }
+    .auth-page .nav-tools { gap: 16px; }
+}

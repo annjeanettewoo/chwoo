@@ -1,6 +1,6 @@
 <?php
 // CHWOO Shop | MySQL-powered catalogue, original CHWOO layout
-session_start();
+require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/bag.php';
 
 // Show the number of items currently saved in the session bag.
@@ -66,32 +66,12 @@ function shopUrl($category, $sort) {
     <link rel="stylesheet" href="<?= chwooEscape($chwooRootUrl) ?>css/bag.css">
 </head>
 <body class="shop-page">
-    <div class="announcement-bar">FREE STANDARD COURIER DELIVERY WITH SGD$80 SPENT</div>
 
-    <header class="shop-header">
-        <nav class="navbar" aria-label="Main navigation">
-            <a class="logo-link" href="../index.php">
-                <img class="logo" src="../images/chwoo-logo.png" alt="CHWOO Fashion Studio">
-            </a>
-            <div class="main-nav">
-                <a href="newin.php">NEW IN</a>
-                <a href="shop.php" aria-current="page">SHOP</a>
-                <a href="collections.php">COLLECTIONS</a>
-                <a href="../lookbook.html">LOOKBOOK</a>
-                <a href="../about.html">ABOUT</a>
-            </div>
-            <div class="nav-tools">
-                <span>SG | SGD $</span>
-                <a href="../search.html">SEARCH</a>
-                <a href="../login.html">ACCOUNT</a>
-                <a data-bag-trigger href="cart.php">BAG (<?= $bagCount ?>)</a>
-            </div>
-        </nav>
-    </header>
+    <?php include __DIR__ . '/header.php'; ?>
 
     <main class="shop-main">
         <div class="breadcrumb">
-            <a href="../index.html">Home</a><span>/</span>Shop
+            <a href="../index.php">Home</a><span>/</span>Shop
         </div>
 
         <section aria-label="Shop introduction">
@@ -167,7 +147,7 @@ function shopUrl($category, $sort) {
 
         <div class="footer-links">
 
-            <a href="php/shop.php">
+            <a href="shop.php">
                 Shop
             </a>
 

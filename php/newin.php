@@ -1,7 +1,7 @@
 <?php
 // CHWOO New In | IE4727 Base Version
 // A dynamic catalogue page that reuses the ORIGINAL CHWOO HTML classes and CSS.
-session_start();
+require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/bag.php';
 
 // newin.php lives in chwoo/php, but public assets still live in chwoo/.
@@ -83,29 +83,7 @@ $bagCount = $chwooBagCount;
 <body class="newin-page">
 
     <!-- ORIGINAL CHWOO HEADER -->
-    <header class="site-header">
-        <div class="announcement-bar">
-            FREE STANDARD COURIER DELIVERY WITH SGD$80 SPENT
-        </div>
-        <nav class="navbar" aria-label="Main navigation">
-            <a href="<?= e($baseUrl) ?>index.php" class="logo-link">
-                <img src="<?= e($baseUrl) ?>images/chwoo-logo.png" alt="CHWOO Fashion Studio" class="logo">
-            </a>
-            <div class="main-nav">
-                <a href="newin.php">NEW IN</a>
-                <a href="shop.php" aria-current="page">SHOP</a>
-                <a href="collections.php">COLLECTIONS</a>
-                <a href="../lookbook.html">LOOKBOOK</a>
-                <a href="../about.html">ABOUT</a>
-            </div>
-            <div class="nav-tools">
-                <span>SG | SGD $</span>
-                <a href="<?= e($baseUrl) ?>search.html">SEARCH</a>
-                <a href="<?= e($baseUrl) ?>login.html">ACCOUNT</a>
-                <a data-bag-trigger href="<?= e($baseUrl) ?>php/cart.php">BAG <span>(<?= $bagCount ?>)</span></a>
-            </div>
-        </nav>
-    </header>
+    <?php include __DIR__ . '/header.php'; ?>
 
     <main>
         <!-- SAME heading, four-column grid, fonts and spacing as homepage New In. -->
