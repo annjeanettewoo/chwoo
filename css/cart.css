@@ -3,6 +3,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1.7fr) minmax(270px, 1fr);
     gap: 7%;
+    align-items: start;
     padding: 60px 0 100px;
 }
 .bag-page .bag-item {
@@ -26,21 +27,29 @@
     padding: 0; border: 0; background: transparent; color: #4b2e1f;
     text-decoration: underline; font-size: 12px; cursor: pointer;
 }
-.bag-page .bag-summary { border-top: 1px solid #917064; padding-top: 22px; }
-.bag-page .bag-summary h2 { font-size: 22px; font-weight: 400; margin: 0 0 28px; }
-.bag-page .bag-total { display: flex; justify-content: space-between; gap: 15px; font-size: 14px; padding-bottom: 18px; border-bottom: 1px solid #ddd1c9; }
-.bag-page .bag-summary p { font-size: 13px; color: #75645d; line-height: 1.7; margin: 24px 0; }
+.bag-page .bag-summary { background: #fffaf3; border: 1px solid #ddd3ca; padding: 28px; }
+.bag-page .bag-summary h2 { font-size: 20px; font-weight: 500; margin: 0 0 26px; }
+.bag-page .bag-total { display: flex; justify-content: space-between; align-items: baseline; gap: 15px; font-size: 13px; margin-bottom: 16px; }
+.bag-page .bag-total > :last-child { text-align: right; }
+.bag-page .bag-estimated-total { border-top: 1px solid #ddd3ca; padding-top: 20px; margin: 22px 0 0; font-size: 16px; }
+.bag-page .bag-summary .bag-delivery-note { font-size: 12px; color: #75645d; line-height: 1.7; margin: 18px 0 22px; }
 .bag-page .bag-shop-link {
     display: inline-block; color: #4b2e1f; border-bottom: 1px solid #4b2e1f;
     font-size: 13px; font-weight: 700; letter-spacing: .4px;
     text-decoration: none; padding: 9px 0;
 }
-.bag-page .bag-empty { padding: 65px 0 140px; }
+.bag-page .bag-empty { padding: 24px 0 40px; }
 .bag-page .bag-empty h2 { font-size: 28px; font-weight: 400; }
 .bag-page .bag-empty p { font-size: 14px; margin-bottom: 23px; }
+.bag-page .bag-summary .bag-shop-link { display: flex; align-items: center; justify-content: center; min-height: 48px; box-sizing: border-box; padding: 13px 18px; border: 1px solid #4b2e1f; margin-top: 12px; text-align: center; font-size: 12px; text-decoration: none; }
+.bag-page .bag-summary .bag-shop-link:hover { background: #f4efe7; }
+.bag-page .bag-summary a:focus-visible { outline: 2px solid #719dbb; outline-offset: 3px; }
+.bag-page .bag-item-details h2 { color: #719dbb; }
+.bag-page .bag-item-details .chwoo-bag-controls { max-width: 250px; }
+.bag-page .bag-item-details [role="alert"] { color: #a54739; }
 @media (max-width: 780px) {
     .bag-page .bag-layout { grid-template-columns: 1fr; gap: 30px; }
     .bag-page .bag-item { grid-template-columns: 110px 1fr; gap: 18px; }
     .bag-page .bag-item-image { width: 110px; height: 140px; }
-    .bag-page .bag-summary { padding-bottom: 35px; }
+    .bag-page .bag-summary { padding: 22px; }
 }

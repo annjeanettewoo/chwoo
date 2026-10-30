@@ -33,6 +33,7 @@ CREATE TABLE product_colours (
     colour_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     product_id INT UNSIGNED NOT NULL,
     colour_name VARCHAR(50) NOT NULL DEFAULT '',
+    swatch_hex CHAR(7) DEFAULT NULL,
     image_path VARCHAR(255) NOT NULL,
     price DECIMAL(8, 2) NOT NULL,
     is_default TINYINT(1) NOT NULL DEFAULT 0,

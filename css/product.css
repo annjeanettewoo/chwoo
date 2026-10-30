@@ -1,5 +1,5 @@
 /* CHWOO Product Details - restores the original product page layout.
-   Loaded after chwoo.css and shop.css. No modifications to shared files. */
+   Loaded after shop.css. No modifications to shared files. */
 
 /* Maintain the Shop's header, navigation and original page width. */
 .product-page .product-main { width: 90%; max-width: 1860px; margin: 0 auto; }
@@ -86,6 +86,15 @@
 .product-page .size-choice input:checked + span { background: #fff3c2; border-color: #4B2E1F; }
 .product-page .size-choice input:focus-visible + span { outline: 2px solid #4B2E1F; outline-offset: 3px; }
 .product-page .size-choice:hover span { border-color: #4B2E1F; }
+.product-page .size-choice.is-unavailable input:not(:checked) + span {
+    color: #aaa;
+    background: linear-gradient(155deg, transparent 49.5%, #d8d1cb 50%, transparent 50.5%);
+}
+.product-page .product-sizes.is-invalid .size-choice span { border-color: #c04b3d; }
+.product-page .product-stock-message { font-size: 12px; color: #726258; min-height: 18px; margin: 12px 0 0; }
+.product-page .product-stock-message.error { color: #a54739; font-weight: 700; }
+.product-page .product-stock-message.success { color: #43704e; }
+.product-page .add-to-bag:disabled { opacity: .45; cursor: not-allowed; }
 
 /* Brown add-to-bag bar and bordered heart button. */
 .product-page .product-action-row { display: grid; grid-template-columns: minmax(0,1fr) 61px; gap: 10px; margin: 30px 0 35px; }

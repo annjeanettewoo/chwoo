@@ -1,0 +1,52 @@
+/* Scoped bag components, adapted from the approved interaction preview. */
+.chwoo-bag-overlay { position: fixed; inset: 0; background: rgba(28,26,22,.49); opacity: 0; transition: opacity .28s; z-index: 1000; }
+.chwoo-bag-overlay[hidden] { display: none; }
+.chwoo-bag-overlay.is-open { opacity: 1; }
+.chwoo-bag-drawer { box-sizing: border-box; position: fixed; right: 0; top: 0; bottom: 0; width: min(490px,100%); background: #fffaf3; color: #4b2e1f; font-family: Arial,Helvetica,sans-serif; box-shadow: -9px 0 40px rgba(20,12,5,.12); z-index: 1001; display: flex; flex-direction: column; transform: translateX(102%); visibility: hidden; transition: transform .3s ease, visibility .3s; }
+.chwoo-bag-drawer *, .chwoo-bag-controls * { box-sizing: border-box; }
+.chwoo-bag-drawer.is-open { transform: translateX(0); visibility: visible; }
+.chwoo-bag-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 94px; margin: 0 26px; border-bottom: 1px solid #ccbeb4; }
+.chwoo-bag-top h2 { font-size: 30px; font-weight: 400; color: #97bdd4; margin: 0; }
+.chwoo-bag-top > span { font-size: 10px; font-weight: 700; white-space: nowrap; }
+.chwoo-bag-close { width: 35px; font-size: 33px; line-height: 1; background: none; border: 0; color: #4b2e1f; cursor: pointer; }
+.chwoo-bag-items { overflow-y: auto; min-height: 0; flex: 1; padding: 15px 26px; }
+.chwoo-bag-empty { text-align: center; margin: 45px 0; font-size: 14px; color: #8e786d; }
+.chwoo-drawer-item { display: grid; grid-template-columns: 79px minmax(0,1fr); gap: 15px; padding: 12px 0 22px; border-bottom: 1px solid #e8ded7; }
+.chwoo-drawer-image { display: flex; align-items: center; justify-content: center; width: 79px; height: 101px; background: #fff; color: #8e786d; font-size: 10px; text-align: center; text-decoration: none; }
+.chwoo-drawer-image img { width: 100%; height: 100%; object-fit: contain; }
+.chwoo-drawer-item h3 { margin: 0 0 4px; font-size: 13px; color: #719dbb; font-weight: 700; }
+.chwoo-bag-meta { font-size: 11px; margin: 0 0 10px; }
+.chwoo-bag-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0; }
+.chwoo-quantity { display: inline-flex; align-items: center; border: 1px solid #a9c8dd; }
+.chwoo-quantity button { border: 0; background: transparent; color: #4b2e1f; min-width: 32px; min-height: 32px; font: 16px Arial,sans-serif; cursor: pointer; }
+.chwoo-quantity span { min-width: 28px; text-align: center; font-size: 12px; }
+.chwoo-quantity button:disabled { opacity: .4; cursor: not-allowed; }
+.chwoo-trash { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; padding: 6px; border: 0; background: transparent; color: #8b756a; border-radius: 4px; cursor: pointer; }
+.chwoo-trash:hover { color: #4b2e1f; background: #f0e8e2; }
+.chwoo-trash svg { pointer-events: none; }
+.chwoo-line-subtotal { text-align: right; font-size: 12px; margin: 4px 0 0; }
+.chwoo-bag-warning { color: #a54739; font-size: 12px; line-height: 1.5; }
+.chwoo-bag-message { border: 1px solid #ddd3ca; padding: 12px; color: #4b2e1f; background: #fffaf3; font-size: 13px; line-height: 1.5; }
+.chwoo-bag-bottom { flex-shrink: 0; padding: 20px 26px 24px; border-top: 1px solid #ccbeb4; }
+.chwoo-shipping-hint { font-size: 11px; margin: 0 0 10px; }
+.chwoo-shipping-track { height: 4px; background: #e9e1d8; margin-bottom: 22px; }
+.chwoo-shipping-track span { display: block; height: 100%; background: #a9c8dd; }
+.chwoo-bag-subtotal { display: flex; justify-content: space-between; align-items: baseline; gap: 15px; font-size: 13px; margin-bottom: 14px; }
+.chwoo-bag-subtotal > :last-child { text-align: right; }
+.chwoo-bag-estimated { border-top: 1px solid #ddd3ca; padding-top: 16px; margin: 18px 0; font-size: 16px; }
+.chwoo-bag-primary { display: block; background: #4b2e1f; border: 1px solid #4b2e1f; color: #fff; text-align: center; text-decoration: none; padding: 17px 18px; font: 700 12px Arial,sans-serif; letter-spacing: .04em; }
+.chwoo-bag-drawer .chwoo-bag-primary, .bag-page .bag-summary .chwoo-bag-primary { color: #fff; }
+.chwoo-bag-primary:hover { background: #765640; }
+.chwoo-view-bag { display: block; text-align: center; color: #4b2e1f; font-size: 11px; padding: 16px; text-underline-offset: 4px; }
+.chwoo-bag-bottom small { display: block; text-align: center; font-size: 10px; color: #736e69; }
+.chwoo-bag-drawer :focus-visible, .chwoo-bag-controls :focus-visible { outline: 2px solid #719dbb; outline-offset: 3px; }
+@media (max-width: 600px) {
+    .chwoo-bag-top { margin: 0 16px; min-height: 76px; }
+    .chwoo-bag-top h2 { font-size: 25px; }
+    .chwoo-bag-items { padding: 12px 16px; }
+    .chwoo-bag-bottom { padding: 14px 16px; }
+    .chwoo-drawer-item { grid-template-columns: 65px minmax(0,1fr); gap: 10px; }
+    .chwoo-drawer-image { width: 65px; height: 90px; }
+}
+@media (max-height: 550px) { .chwoo-bag-drawer { overflow-y: auto; } .chwoo-bag-items { flex: 1 0 auto; } }
+@media (prefers-reduced-motion: reduce) { .chwoo-bag-overlay, .chwoo-bag-drawer { transition: none; } }

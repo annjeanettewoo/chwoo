@@ -1,9 +1,8 @@
 <?php
 // CHWOO New In | IE4727 Base Version
 // A dynamic catalogue page that reuses the ORIGINAL CHWOO HTML classes and CSS.
-// No changes are required to the existing products, orders or database structure.
 session_start();
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/bag.php';
 
 // newin.php lives in chwoo/php, but public assets still live in chwoo/.
 // Resolve the project root from the script URL to preserve CSS and image paths.
@@ -18,7 +17,12 @@ function e($value) {
 $productsPerPage = 8;
 
 // Count all active products so we know how many page buttons to display.
-$countResult = $conn->query('SELECT COUNT(*) AS total FROM products WHERE is_active = 1');
+$countResult = $conn->query(
+    'SELECT COUNT(*) AS total
+     FROM products AS p
+     JOIN product_colours AS c ON c.product_id = p.product_id AND c.is_default = 1
+     WHERE p.is_active = 1'
+);
 $totalProducts = (int)$countResult->fetch_assoc()['total'];
 $totalPages = max(1, (int)ceil($totalProducts / $productsPerPage));
 
@@ -34,10 +38,11 @@ $page = min($page, $totalPages);
 // OFFSET skips the products shown on earlier pages.
 $offset = ($page - 1) * $productsPerPage;
 $stmt = $conn->prepare(
-    'SELECT product_id, product_name, price, image_path
-     FROM products
-     WHERE is_active = 1
-     ORDER BY product_id DESC
+    'SELECT p.product_id, p.product_name, c.price, c.image_path
+     FROM products AS p
+     JOIN product_colours AS c ON c.product_id = p.product_id AND c.is_default = 1
+     WHERE p.is_active = 1
+     ORDER BY p.product_id DESC
      LIMIT ? OFFSET ?'
 );
 $stmt->bind_param('ii', $productsPerPage, $offset);
@@ -55,10 +60,7 @@ while ($product = $result->fetch_assoc()) {
 $stmt->close();
 
 // Show the SAME shopping bag count used by php/product.php and php/cart.php.
-$bagCount = 0;
-foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
-    $bagCount += (int)($item['quantity'] ?? 0);
-}
+$bagCount = $chwooBagCount;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -76,6 +78,7 @@ foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
     <link rel="stylesheet" href="<?= e($baseUrl) ?>css/newin.css">
     <!-- Pagination-only styles. Original CHWOO CSS stays untouched. -->
     <link rel="stylesheet" href="<?= e($baseUrl) ?>css/newin-pagination.css">
+    <link rel="stylesheet" href="<?= chwooEscape($chwooRootUrl) ?>css/bag.css">
 </head>
 <body class="newin-page">
 
@@ -99,7 +102,7 @@ foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
                 <span>SG | SGD $</span>
                 <a href="<?= e($baseUrl) ?>search.html">SEARCH</a>
                 <a href="<?= e($baseUrl) ?>login.html">ACCOUNT</a>
-                <a href="<?= e($baseUrl) ?>php/cart.php">BAG <span>(<?= $bagCount ?>)</span></a>
+                <a data-bag-trigger href="<?= e($baseUrl) ?>php/cart.php">BAG <span>(<?= $bagCount ?>)</span></a>
             </div>
         </nav>
     </header>
@@ -168,6 +171,7 @@ foreach ($_SESSION['chwoo_cart'] ?? [] as $item) {
         </div>
         <p>&copy; 2026 CHWOO Fashion Studio</p>
     </footer>
+    <?php include __DIR__ . '/bag_drawer.php'; ?>
 </body>
 </html>
 <?php $conn->close(); ?>
