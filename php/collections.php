@@ -9,15 +9,15 @@ $bagCount = $chwooBagCount;
 
 // Content links are relative to this PHP page; navigation lives in header.php.
 $shopUrl = 'shop.php';
-$aboutUrl = 'about.html';
 
 // Keep the image folder inside the existing /images directory.
 // PHP checks for the optional pictures so missing images display labelled placeholders.
 function collectionImage(string $filename, string $alt, string $placeholderText): void
 {
     $path = 'images/collections/' . $filename;
-    if (is_file(__DIR__ . '/' . $path)) {
-        echo '<img src="' . htmlspecialchars($path, ENT_QUOTES, 'UTF-8') . '" alt="'
+    $url = chwooImageUrl($path, chwooAuthRootUrl());
+    if ($url !== '') {
+        echo '<img src="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" alt="'
             . htmlspecialchars($alt, ENT_QUOTES, 'UTF-8') . '" loading="lazy">';
     } else {
         echo '<div class="collection-image-placeholder" role="img" aria-label="'
@@ -98,9 +98,9 @@ function collectionImage(string $filename, string $alt, string $placeholderText)
         <div class="footer-logo">CHWOO</div>
         <div class="footer-links">
             <a href="<?= htmlspecialchars($shopUrl) ?>">Shop</a>
-            <a href="<?= htmlspecialchars($aboutUrl) ?>">About Us</a>
-            <a href="contact.html">Contact</a>
-            <a href="orders.html">Orders</a>
+            <!-- ABOUT is on hold until a page is available. -->
+            <!-- Contact is on hold until a page is available. -->
+            <a href="account.php?section=orders">Orders</a>
         </div>
         <p>&copy; <?= date('Y') ?> CHWOO Fashion Studio</p>
     </footer>

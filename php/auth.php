@@ -23,7 +23,7 @@ function chwooAuthRootUrl() {
 // Shared allowlist for ordinary form redirects; paths are relative to CHWOO.
 function chwooReturnTo($value, $fallback = 'php/cart.php') {
     $allowed = ['index.php', 'php/shop.php', 'php/newin.php', 'php/product.php',
-                'php/cart.php', 'php/collections.php', 'php/account.php', 'php/checkout.php'];
+                'php/cart.php', 'php/collections.php', 'php/account.php', 'php/checkout.php', 'php/outfit.php'];
     if (!is_string($value) || strlen($value) > 1000) { return $fallback; }
     $parts = parse_url($value);
     if ($parts === false || isset($parts['scheme']) || isset($parts['host'])
@@ -75,8 +75,9 @@ function chwooAuthHome($message) {
 function chwooAuthAccount($message) {
     unset($_SESSION['chwoo_auth_feedback']);
     $_SESSION['chwoo_auth_notice'] = $message;
-    $destination = !empty($_SESSION['chwoo_checkout_login']) ? 'php/checkout.php' : 'php/account.php';
-    unset($_SESSION['chwoo_checkout_login']);
+    $destination = !empty($_SESSION['chwoo_checkout_login']) ? 'php/checkout.php'
+        : (!empty($_SESSION['chwoo_orders_login']) ? 'php/account.php?section=orders' : 'php/account.php');
+    unset($_SESSION['chwoo_checkout_login'], $_SESSION['chwoo_orders_login']);
     header('Location: ' . chwooAuthRootUrl() . $destination, true, 303);
     exit;
 }

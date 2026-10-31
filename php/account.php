@@ -3,6 +3,9 @@ require_once __DIR__ . '/auth.php';
 header('Cache-Control: no-store');
 $identity = chwooCurrentCustomer();
 if (!$identity) {
+    // A guest following Orders should reach order history after signing in.
+    if (($_GET['section'] ?? '') === 'orders') { $_SESSION['chwoo_orders_login'] = true; }
+    else { unset($_SESSION['chwoo_orders_login']); }
     header('Location: ' . chwooAuthRootUrl() . 'php/login.php', true, 303);
     exit;
 }

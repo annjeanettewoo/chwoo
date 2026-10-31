@@ -23,14 +23,15 @@
             label.classList.toggle('is-unavailable', !available);
             input.setAttribute('aria-label', 'Size ' + input.value + (available ? ', available' : ', unavailable'));
         });
-        const available = size && Number(colour.getAttribute('data-stock-' + size.value.toLowerCase())) > 0;
+        const quantity = size ? Number(colour.getAttribute('data-stock-' + size.value.toLowerCase())) : 0;
+        const available = quantity > 0;
         addButton.disabled = !!size && !available;
         sizeArea.classList.remove('is-invalid');
         sizeArea.removeAttribute('aria-invalid');
         message.className = 'product-stock-message' + (size ? (available ? ' success' : ' error') : '');
         message.textContent = !size ? 'Please choose a size.'
-            : available ? 'Size ' + size.value + ' is available.'
-            : 'Size ' + size.value + ' is unavailable in ' + colour.dataset.name + '.';
+            : available ? 'Size ' + size.value + ' · ' + quantity + ' available'
+            : 'Size ' + size.value + ' is unavailable';
 
         // Drawer POSTs return to the colour/size currently visible, even before Add to Bag.
         document.querySelectorAll('.chwoo-bag-controls input[name="return_to"]').forEach(function (input) {

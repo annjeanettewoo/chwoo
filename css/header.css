@@ -239,3 +239,15 @@
     }
 
 }
+
+/* Keep all shared links accessible when the full row no longer fits. */
+@media (max-width: 1350px) {
+    .site-header .navbar, .shop-header .navbar { flex-wrap: wrap; row-gap: 16px; }
+    .site-header .navbar .main-nav, .shop-header .navbar .main-nav {
+        display: flex; order: 3; flex: 0 0 100%; flex-wrap: wrap;
+        align-items: center; gap: 4px 20px;
+    }
+    .site-header .navbar .main-nav a, .shop-header .navbar .main-nav a {
+        display: inline-flex; align-items: center; min-height: 44px; white-space: nowrap;
+    }
+}

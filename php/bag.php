@@ -45,11 +45,14 @@ if (empty($_SESSION['chwoo_form_token'])) {
 }
 
 // Never guess the variant represented by an obsolete product/size/colour entry.
+$chwooBagPreserveEntries = $chwooBagPreserveEntries ?? false;
 if (!isset($_SESSION['chwoo_cart'])) {
-    $_SESSION['chwoo_cart'] = [];
+    if (!$chwooBagPreserveEntries) { $_SESSION['chwoo_cart'] = []; }
 } elseif (!is_array($_SESSION['chwoo_cart'])) {
-    $_SESSION['chwoo_cart'] = [];
-    $_SESSION['chwoo_cart_notice'] = 'Outdated or invalid bag entries were removed. Please select those items again.';
+    if (!$chwooBagPreserveEntries) { $_SESSION['chwoo_cart'] = []; }
+    $_SESSION['chwoo_cart_notice'] = $chwooBagPreserveEntries
+        ? 'Please review outdated or invalid entries in your bag.'
+        : 'Outdated or invalid bag entries were removed. Please select those items again.';
 }
 $chwooBagItems = [];
 $chwooBagCount = 0;
@@ -61,21 +64,25 @@ $bagStatement = $conn->prepare('SELECT v.variant_id, v.size_code, v.stock_quanti
                                JOIN product_colours AS c ON c.colour_id = v.colour_id
                                JOIN products AS p ON p.product_id = c.product_id
                                WHERE v.variant_id = ? AND p.is_active = 1');
-foreach ($_SESSION['chwoo_cart'] as $key => $entry) {
+foreach (is_array($_SESSION['chwoo_cart'] ?? null) ? $_SESSION['chwoo_cart'] : [] as $key => $entry) {
     if (!is_array($entry) || !isset($entry['variant_id'], $entry['quantity'])
         || !is_int($entry['variant_id']) || $entry['variant_id'] < 1
         || (string)$key !== (string)$entry['variant_id']
         || !is_int($entry['quantity']) || $entry['quantity'] < 1) {
-        unset($_SESSION['chwoo_cart'][$key]);
-        $_SESSION['chwoo_cart_notice'] = 'Outdated or invalid bag entries were removed. Please select those items again.';
+        if (!$chwooBagPreserveEntries) { unset($_SESSION['chwoo_cart'][$key]); }
+        $_SESSION['chwoo_cart_notice'] = $chwooBagPreserveEntries
+            ? 'Please review outdated or invalid entries in your bag.'
+            : 'Outdated or invalid bag entries were removed. Please select those items again.';
         continue;
     }
     $bagStatement->bind_param('i', $entry['variant_id']);
     $bagStatement->execute();
     $row = $bagStatement->get_result()->fetch_assoc();
     if (!$row) {
-        unset($_SESSION['chwoo_cart'][$key]);
-        $_SESSION['chwoo_cart_notice'] = 'Unavailable bag entries were removed. Please select those items again.';
+        if (!$chwooBagPreserveEntries) { unset($_SESSION['chwoo_cart'][$key]); }
+        $_SESSION['chwoo_cart_notice'] = $chwooBagPreserveEntries
+            ? 'Please review unavailable entries in your bag.'
+            : 'Unavailable bag entries were removed. Please select those items again.';
         continue;
     }
     $quantity = $entry['quantity'];
