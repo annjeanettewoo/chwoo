@@ -15,7 +15,8 @@ if (!is_string($token) || !hash_equals($_SESSION['chwoo_form_token'], $token)) {
 }
 if ($action === 'logout') {
     unset($_SESSION['chwoo_customer'], $_SESSION['chwoo_pending_wishlist_product_id'],
-        $_SESSION['chwoo_pending_wishlist_return_to']);
+        $_SESSION['chwoo_pending_wishlist_return_to'], $_SESSION['chwoo_checkout_login'],
+        $_SESSION['chwoo_checkout'], $_SESSION['chwoo_checkout_feedback']);
     session_regenerate_id(true);
     chwooAuthHome('You have been logged out.');
 }

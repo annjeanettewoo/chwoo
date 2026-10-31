@@ -43,7 +43,7 @@ $scriptDirectory = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
 $chwooRootUrl = rtrim(basename($scriptDirectory) === 'php' ? dirname($scriptDirectory) : $scriptDirectory, '/') . '/';
 $chwooPage = basename($scriptDirectory) === 'php' ? 'php/' . basename($_SERVER['SCRIPT_NAME']) : 'index.php';
 $chwooReturnTo = chwooReturnTo($chwooPage . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : ''));
-$chwooCheckoutUrl = $chwooRootUrl . 'php/' . (is_file(__DIR__ . '/checkout.php') ? 'checkout.php' : 'cart.php?checkout=pending');
+$chwooCheckoutUrl = $chwooRootUrl . 'php/checkout.php';
 if (empty($_SESSION['chwoo_form_token'])) {
     $_SESSION['chwoo_form_token'] = bin2hex(random_bytes(16));
 }
@@ -59,7 +59,7 @@ $chwooBagItems = [];
 $chwooBagCount = 0;
 $chwooBagTotal = 0.0;
 $bagStatement = $conn->prepare('SELECT v.variant_id, v.size_code, v.stock_quantity,
-                                      c.colour_name, c.image_path, c.price,
+                                      c.colour_id, c.colour_name, c.image_path, c.price,
                                       p.product_id, p.product_name
                                FROM product_variants AS v
                                JOIN product_colours AS c ON c.colour_id = v.colour_id
@@ -87,6 +87,7 @@ foreach ($_SESSION['chwoo_cart'] as $key => $entry) {
     $subtotal = (float)$row['price'] * $quantity;
     $chwooBagItems[] = [
         'variant_id' => $entry['variant_id'], 'product_id' => (int)$row['product_id'],
+        'colour_id' => (int)$row['colour_id'],
         'name' => $row['product_name'], 'colour' => $row['colour_name'] ?: 'Colour unspecified',
         'size' => $row['size_code'], 'quantity' => $quantity, 'stock' => $stock,
         'price' => (float)$row['price'], 'subtotal' => $subtotal,
@@ -100,8 +101,5 @@ foreach ($_SESSION['chwoo_cart'] as $key => $entry) {
 $bagStatement->close();
 $chwooDelivery = chwooDeliveryCharge($chwooBagTotal, $chwooBagCount);
 $chwooEstimatedTotal = $chwooBagTotal + $chwooDelivery;
-$chwooBagMessage = $_SESSION['chwoo_bag_flash'] ?? ($_SESSION['chwoo_cart_notice'] ?? '');
+$chwooBagMessage = trim(($_SESSION['chwoo_bag_flash'] ?? '') . ' ' . ($_SESSION['chwoo_cart_notice'] ?? ''));
 unset($_SESSION['chwoo_bag_flash'], $_SESSION['chwoo_cart_notice']);
-if (($_GET['checkout'] ?? '') === 'pending') {
-    $chwooBagMessage = 'Checkout is coming soon. Your bag is saved; no order has been placed.';
-}
