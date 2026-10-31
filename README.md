@@ -8,6 +8,21 @@ checkout, order history and optional local acknowledgement email.
 **Payment is simulated.** `Paid` / `Confirmed` are local demonstration statuses;
 there is no payment gateway, external financial settlement or card-data storage.
 
+## Customer-facing site map
+
+- Home (`index.php`): newest-four preview linking to New In.
+- NEW IN (`php/newin.php`): latest eight active products.
+- SHOP (`php/shop.php`): full active catalogue, categories and sorting.
+- Product Details (`php/product.php?id=…`): catalogue-card destination with colour/size selection.
+- LOOKBOOK (`php/outfit.php`): Outfit Builder in Top + Bottom or Dress mode.
+- Supporting workflows: login/registration, Account (wishlist, addresses and orders),
+  bag, checkout delivery/review, simulated payment and order confirmation.
+
+Main navigation is **NEW IN | SHOP | LOOKBOOK**, with the Home logo, account/login
+and bag controls. Collections has been removed; its image assets are retained for
+final packaging review. Related functional pages do not count towards the content
+page limit, as confirmed by Prof Hu Xiao.
+
 ## Windows XAMPP installation
 
 1. Install Windows XAMPP with Apache, PHP and MariaDB (labelled **MySQL** in the
@@ -59,9 +74,6 @@ there is no payment gateway, external financial settlement or card-data storage.
 
 See [database/README.md](database/README.md) for relationships, catalogue caveats
 and existing-installation inspection. All 16 seeded product images are supplied.
-Collections still expects the teammate's approved `midsommar-editorial-02.jpg`
-and `midsommar-outfit.jpg` in `C:\xampp\htdocs\chwoo\images\collections`;
-labelled placeholders remain until those files are supplied.
 
 ## Local order acknowledgement email
 
@@ -159,7 +171,8 @@ regressions. The test server has `mail()` disabled and prepare-only mode enabled
 and explicit acceptance/failure tests inject mocks. Installed store records are
 compared before/after and must remain unchanged. Task 07C also runs `task07c2.php`
 and `task07d1.php`, covering outfit/bag integration, navigation, Wishlist → Orders
-authentication and Collections image paths. These included files are not standalone
+authentication. Task 07C includes Task 09A catalogue checks and verifies the final
+header/footer destinations and removal of Collections. These included files are not standalone
 runners. Do not run Task 05 separately against the installed store. If temporary
 storage is restricted, point process-local `TEMP` and `TMP` at a writable scratch
 directory before launching PHP. JavaScript checks simulate events and do not

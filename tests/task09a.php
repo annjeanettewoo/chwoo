@@ -46,9 +46,13 @@ check(catalogueIds($home['html']) === array_slice($expectedNew, 0, 4), 'Homepage
 $homeDom = catalogueDom($home['html']);
 check($homeDom->query('//a[(@class="shop-button" or @class="view-all") and @href="php/newin.php"]')->length === 2,
     'Homepage New In buttons lead to New In');
-$collectionPage = request($catalogueBrowser, 'php/collections.php');
-check(catalogueDom($collectionPage['html'])->query('//a[@href="shop.php" and normalize-space(.)="SHOP ALL PIECES →"]')->length === 2,
-    'Both Collections calls to action accurately label the full Shop destination');
+check(request($catalogueBrowser, 'php/collections.php')['status'] === 404,
+    'Removed Collections page returns HTTP 404');
+check(!is_file(__DIR__ . '/../css/collections.css'), 'Collections-only stylesheet is removed');
+foreach (array_merge(glob(__DIR__ . '/../php/*.php'), glob(__DIR__ . '/../*.php'), glob(__DIR__ . '/../*.html')) as $source) {
+    check(!preg_match('~(?:href|src)=["\'][^"\']*(?:collections\.(?:php|html|css))~i', file_get_contents($source)),
+        'No removed Collections destination in customer source: ' . basename($source));
+}
 $sortOrders = ['featured'=>'p.product_id ASC', 'price_asc'=>'c.price ASC,p.product_id ASC',
     'price_desc'=>'c.price DESC,p.product_id ASC', 'name_asc'=>'p.product_name ASC,p.product_id ASC'];
 foreach (['All', 'Tops', 'Bottoms', 'Dresses'] as $category) {
