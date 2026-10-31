@@ -191,7 +191,7 @@ $initialTotal = array_sum(array_map(fn($key) => $slots[$key]['colour']['priceCen
         </div>
         <p class="outfit-sr-only" id="outfit-status" role="status" aria-live="polite" aria-atomic="true"></p>
     </main>
-    <footer><div class="footer-logo">CHWOO</div><div class="footer-links"><a href="shop.php">Shop</a><a href="collections.php">Collections</a><a href="account.php">Your Account</a></div><p>&copy; 2026 CHWOO Fashion Studio</p></footer>
+    <footer><div class="footer-logo">CHWOO</div><div class="footer-links"><a href="shop.php">Shop</a><a href="account.php">Your Account</a></div><p>&copy; 2026 CHWOO Fashion Studio</p></footer>
     <!-- One compact catalogue for all three slots; data stays ordinary, escaped HTML. -->
     <div id="outfit-catalogue" hidden>
         <?php foreach ($products as $product): ?>

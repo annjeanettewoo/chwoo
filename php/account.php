@@ -156,7 +156,7 @@ $firstName = explode(' ', $customer['full_name'])[0];
         <?php endif; ?>
     </div>
 </main>
-<footer><div class="footer-logo">CHWOO</div><div class="footer-links"><a href="shop.php">Shop</a><a href="newin.php">New In</a><a href="collections.php">Collections</a><a href="account.php">Your Account</a></div><p>&copy; <?= date('Y') ?> CHWOO Fashion Studio</p></footer>
+<footer><div class="footer-logo">CHWOO</div><div class="footer-links"><a href="shop.php">Shop</a><a href="newin.php">New In</a><a href="account.php">Your Account</a></div><p>&copy; <?= date('Y') ?> CHWOO Fashion Studio</p></footer>
 <?php include __DIR__ . '/bag_drawer.php'; ?>
 </body>
 </html>

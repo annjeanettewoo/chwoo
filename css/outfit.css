@@ -1,5 +1,5 @@
 /* Styling board and its bag action. */
-.outfit-page { background: #fffdf9; }
+.outfit-page { background: #fff; }
 .outfit-page [hidden] { display: none !important; }
 .outfit-page .site-header { position: relative; box-shadow: none; border-bottom: 1px solid #e8e0d7; }
 .outfit-page .navbar { padding: 22px 4%; }

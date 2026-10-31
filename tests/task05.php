@@ -83,12 +83,12 @@ try {
     $page = request('php/product.php?id=1');
     $csrf = token($page['html']);
     check(str_contains($page['html'], '../css/header.css'), 'Product loads the shared navigation styling');
-    check(navigationIs($page['html'], 'SHOP'), 'Product marks Shop active, never Collections');
+    check(navigationIs($page['html'], 'SHOP'), 'Product marks Shop active');
     $shop = request('php/shop.php');
-    $collections = request('php/collections.php');
+    $lookbook = request('php/outfit.php');
     $newIn = request('php/newin.php');
-    check(navigationIs($shop['html'], 'SHOP') && navigationIs($collections['html'], 'COLLECTIONS')
-        && navigationIs($newIn['html'], 'NEW IN'), 'Shop, Collections and New In have the correct active navigation');
+    check(navigationIs($shop['html'], 'SHOP') && navigationIs($lookbook['html'], 'LOOKBOOK')
+        && navigationIs($newIn['html'], 'NEW IN'), 'Shop, Lookbook and New In have the correct active navigation');
     $row = $conn->query("SELECT v.variant_id, c.product_id, c.colour_id, v.size_code, c.price
         FROM product_variants v JOIN product_colours c ON c.colour_id=v.colour_id
         JOIN products p ON p.product_id=c.product_id WHERE p.is_active=1 AND v.stock_quantity>=2

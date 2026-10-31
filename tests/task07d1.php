@@ -86,24 +86,4 @@ $response = request($guest, 'php/auth_action.php', ['form_token'=>csrf($guest), 
 check(($response['headers']['location'] ?? '') === '/chwoo/php/product.php?id=1',
     'Malformed Orders section does not supersede a valid wishlist return');
 
-$page = request(browser(), 'php/collections.php'); $xpath = pageDom($page['html']);
-foreach (['midsommar-editorial-01.jpg'=>'collection-photo-main',
-    'midsommar-editorial-02.jpg'=>'collection-photo-detail', 'midsommar-outfit.jpg'=>'collection-photo-outfit'] as $filename=>$class) {
-    $figure = '//figure[contains(@class,"' . $class . '")]';
-    $path = 'images/collections/' . $filename;
-    if (is_file(dirname(__DIR__) . '/' . $path)) {
-        $images = $xpath->query($figure . '/img');
-        check($images->length === 1 && $images->item(0)->getAttribute('src') === '/chwoo/' . $path,
-            "Collections finds project-root $filename and emits its root URL");
-        $image = request(browser(), $path);
-        check($image['status'] === 200 && $image['html'] === file_get_contents(dirname(__DIR__) . '/' . $path),
-            "Collections URL serves exact approved $filename bytes");
-    } else {
-        check($xpath->query($figure . '//div[contains(@class,"collection-image-placeholder") and @role="img" and @aria-label]')->length === 1
-            && $xpath->query($figure . '/img')->length === 0,
-            "Collections preserves intentional missing-image fallback for $filename");
-    }
-}
-check($xpath->query('//section[contains(@class,"collection-banner")]/img[@src="../images/collections/midsommarhero.png"]')->length === 1,
-    'Existing approved Collections banner path is preserved');
 echo ($checks - $focusedStart) . " Task 07D.1 focused checks passed.\n";

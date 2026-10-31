@@ -221,28 +221,38 @@ try {
     check(bag($buyer) === [] && (int)$conn->query('SELECT SUM(stock_quantity) n FROM product_variants WHERE variant_id IN (1,5,41)')->fetch_assoc()['n'] === 12,
         'Only confirmed order deducts one per outfit variant and clears the purchased bag');
     $navigationPages = ['index.php'=>'', 'php/newin.php'=>'NEW IN', 'php/shop.php'=>'SHOP',
-        'php/collections.php'=>'COLLECTIONS', 'php/product.php?id=1'=>'SHOP', 'php/outfit.php'=>'LOOKBOOK',
+        'php/product.php?id=1'=>'SHOP', 'php/outfit.php'=>'LOOKBOOK',
         'php/account.php'=>'', 'php/cart.php'=>'', 'php/checkout.php'=>'',
         'php/order_confirmation.php?id=' . $order['order_id']=>''];
     foreach ($navigationPages as $path=>$activeLabel) {
         $page = request($buyer, $path);
         $document = new DOMDocument(); @$document->loadHTML($page['html']); $xpath = new DOMXPath($document);
+        check($xpath->query('//a[contains(@href,"collections.php") or contains(@href,"collections.html")] | //link[contains(@href,"collections.css")]')->length === 0,
+            'No removed Collections links or stylesheet on ' . $path);
+        foreach ($xpath->query('//link[@rel="stylesheet"]') as $style) {
+            $href = $style->getAttribute('href');
+            $asset = str_starts_with($href, '/chwoo/') ? substr($href, strlen('/chwoo/'))
+                : (str_starts_with($path, 'php/') ? 'php/' : '') . $href;
+            check(request($buyer, $asset)['status'] === 200, 'Stylesheet resolves on ' . $path . ': ' . $href);
+        }
         $links = $xpath->query('//nav[contains(@class,"navbar")]//a');
         $actual = [];
         foreach ($links as $link) { $actual[trim($link->textContent)] = $link->getAttribute('href'); }
         $active = $xpath->query('//div[@class="main-nav"]/a[@aria-current="page"]');
         check($page['status'] === 200 && $actual === [
             ''=>'/chwoo/index.php', 'NEW IN'=>'/chwoo/php/newin.php', 'SHOP'=>'/chwoo/php/shop.php',
-            'COLLECTIONS'=>'/chwoo/php/collections.php', 'LOOKBOOK'=>'/chwoo/php/outfit.php',
+            'LOOKBOOK'=>'/chwoo/php/outfit.php',
             'ACCOUNT'=>'/chwoo/php/account.php', 'BAG (0)'=>'/chwoo/php/cart.php']
-            && $links->length === 7
+            && $links->length === 6
             && $xpath->query('//nav//a[@href="/chwoo/php/outfit.php"]')->length === 1
             && ($activeLabel === '' ? $active->length === 0 : $active->length === 1 && trim($active->item(0)->textContent) === $activeLabel)
-            && $xpath->query('//a[contains(@href,"search.html") or contains(@href,"about.html") or contains(@href,"lookbook.html")]')->length === 0,
+            && $xpath->query('//a[contains(@href,"search.html") or contains(@href,"about.html") or contains(@href,"lookbook.html") or contains(@href,"collections.")]')->length === 0,
             'Exact header links, no duplicates or obsolete destinations, and correct active state on ' . $path);
-        foreach ($links as $link) {
-            check(request($buyer, substr($link->getAttribute('href'), strlen('/chwoo/')))['status'] === 200,
-                'Header target resolves from ' . $path . ': ' . ($link->getAttribute('aria-label') ?: trim($link->textContent) ?: 'Home'));
+        foreach ($xpath->query('//nav[contains(@class,"navbar")]//a | //footer//a') as $link) {
+            $target = $link->getAttribute('href');
+            $target = str_starts_with($target, '/chwoo/') ? substr($target, strlen('/chwoo/')) : (str_starts_with($path, 'php/') ? 'php/' : '') . $target;
+            check(request($buyer, $target)['status'] === 200,
+                'Header/footer target resolves from ' . $path . ': ' . ($link->getAttribute('aria-label') ?: trim($link->textContent) ?: 'Home'));
         }
     }
     $guest = browser(); $page = request($guest, 'php/outfit.php');
@@ -253,7 +263,7 @@ try {
         $document = new DOMDocument(); @$document->loadHTML($page['html']); $xpath = new DOMXPath($document);
         check(str_contains($page['html'], 'content="0;url=' . $destination . '"')
             && $xpath->query('//nav//a[@href="php/outfit.php" and normalize-space(.)="LOOKBOOK"]')->length === 1
-            && $xpath->query('//a[contains(@href,"search.html") or contains(@href,"about.html") or contains(@href,"lookbook.html")]')->length === 0,
+            && $xpath->query('//a[contains(@href,"search.html") or contains(@href,"about.html") or contains(@href,"lookbook.html") or contains(@href,"collections.")]')->length === 0,
             'Legacy entry retains redirect and has no obsolete Search, About or Lookbook destinations: ' . $legacy);
     }
     require __DIR__ . '/task07c2.php';

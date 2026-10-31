@@ -17,7 +17,7 @@ if ($headerShop): ?>
             <img class="logo" src="<?= chwooAuthEscape($headerRoot) ?>images/chwoo-logo.png" alt="CHWOO Fashion Studio">
         </a>
         <div class="main-nav">
-            <?php foreach (['newin.php' => 'NEW IN', 'shop.php' => 'SHOP', 'collections.php' => 'COLLECTIONS', 'outfit.php' => 'LOOKBOOK'] as $navPage => $navLabel): ?>
+            <?php foreach (['newin.php' => 'NEW IN', 'shop.php' => 'SHOP', 'outfit.php' => 'LOOKBOOK'] as $navPage => $navLabel): ?>
             <a href="<?= chwooAuthEscape($headerRoot . 'php/' . $navPage) ?>" <?= $headerActive === $navPage ? 'aria-current="page"' : '' ?>><?= $navLabel ?></a>
             <?php endforeach; ?>
             <?php // ABOUT is on hold: no About page currently exists. ?>
