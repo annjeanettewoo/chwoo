@@ -1,4 +1,4 @@
-/* Styling board only: shared catalogue, checkout and header rules stay untouched. */
+/* Styling board and its bag action. */
 .outfit-page { background: #fffdf9; }
 .outfit-page [hidden] { display: none !important; }
 .outfit-page .site-header { position: relative; box-shadow: none; border-bottom: 1px solid #e8e0d7; }
@@ -88,6 +88,8 @@
 .outfit-total output { font-size: 21px; letter-spacing: -.5px; white-space: nowrap; }
 #outfit-completeness { font-size: 11px; line-height: 1.6; margin: 12px 0 0; }
 .outfit-preview-note { font-size: 10px; line-height: 1.7; color: #725c50; margin: 14px 0 0; }
+.outfit-add { width: 100%; min-height: 48px; margin-top: 16px; padding: 13px; border: 1px solid #4b2e1f; background: #4b2e1f; color: #fffdf9; font: bold 11px Arial,sans-serif; letter-spacing: 1px; cursor: pointer; }
+.outfit-add:disabled { background: #e2d9ca; border-color: #d8cfc4; color: #725c50; cursor: not-allowed; }
 .outfit-shop-link { display: flex; align-items: center; justify-content: space-between; color: #4b2e1f; padding: 18px 0 5px; font-size: 10px; font-weight: 700; text-decoration: none; letter-spacing: 1px; }
 .outfit-shop-link span { font-size: 20px; font-weight: 400; }
 .outfit-mobile-jump { display: none; }

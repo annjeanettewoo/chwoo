@@ -17,15 +17,13 @@ if ($headerShop): ?>
             <img class="logo" src="<?= chwooAuthEscape($headerRoot) ?>images/chwoo-logo.png" alt="CHWOO Fashion Studio">
         </a>
         <div class="main-nav">
-            <?php foreach (['newin.php' => 'NEW IN', 'shop.php' => 'SHOP', 'collections.php' => 'COLLECTIONS'] as $navPage => $navLabel): ?>
+            <?php foreach (['newin.php' => 'NEW IN', 'shop.php' => 'SHOP', 'collections.php' => 'COLLECTIONS', 'outfit.php' => 'LOOKBOOK'] as $navPage => $navLabel): ?>
             <a href="<?= chwooAuthEscape($headerRoot . 'php/' . $navPage) ?>" <?= $headerActive === $navPage ? 'aria-current="page"' : '' ?>><?= $navLabel ?></a>
             <?php endforeach; ?>
-            <a href="<?= chwooAuthEscape($headerRoot) ?>lookbook.html">LOOKBOOK</a>
-            <a href="<?= chwooAuthEscape($headerRoot) ?>about.html">ABOUT</a>
+            <?php // ABOUT is on hold: no About page currently exists. ?>
         </div>
         <div class="nav-tools">
             <span>SG | SGD $</span>
-            <a href="<?= chwooAuthEscape($headerRoot) ?>search.html">SEARCH</a>
             <a class="chwoo-account-link" href="<?= chwooAuthEscape($headerRoot) ?>php/<?= chwooCurrentCustomer() ? 'account.php' : 'login.php' ?>" <?= in_array($headerPage, ['login.php', 'account.php'], true) ? 'aria-current="page"' : '' ?>><?= chwooCurrentCustomer() ? 'ACCOUNT' : 'LOGIN' ?></a>
             <a data-bag-trigger href="<?= chwooAuthEscape($headerRoot) ?>php/cart.php">BAG (<?= (int)$chwooBagCount ?>)</a>
         </div>

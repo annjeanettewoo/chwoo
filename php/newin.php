@@ -143,9 +143,9 @@ $bagCount = $chwooBagCount;
         <div class="footer-logo">CHWOO</div>
         <div class="footer-links">
             <a href="<?= e($baseUrl) ?>php/shop.php">Shop</a>
-            <a href="<?= e($baseUrl) ?>about.html">About Us</a>
-            <a href="<?= e($baseUrl) ?>contact.html">Contact</a>
-            <a href="<?= e($baseUrl) ?>orders.html">Orders</a>
+            <!-- ABOUT is on hold until a page is available. -->
+            <!-- Contact is on hold until a page is available. -->
+            <a href="<?= e($baseUrl) ?>php/account.php?section=orders">Orders</a>
         </div>
         <p>&copy; 2026 CHWOO Fashion Studio</p>
     </footer>

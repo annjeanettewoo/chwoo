@@ -1,13 +1,28 @@
-// Catalogue data is rendered once by PHP. This page never sends purchase requests.
+// Catalogue data is rendered once by PHP; additions use the shared session bag via POST.
 (function () {
     'use strict';
     const root = document.getElementById('outfit-builder');
     if (!root) { return; }
-    const products = JSON.parse(document.getElementById('outfit-catalogue').textContent);
+    const products = Array.from(document.querySelectorAll('#outfit-catalogue [data-product-id]')).map(function (product) {
+        return {
+            id: Number(product.dataset.productId), name: product.dataset.name, category: product.dataset.category,
+            colours: Array.from(product.querySelectorAll('[data-colour-id]')).map(function (colour) {
+                return {
+                    id: Number(colour.dataset.colourId), name: colour.dataset.name,
+                    swatch: colour.dataset.swatch || null, image: colour.dataset.image,
+                    priceCents: Number(colour.dataset.priceCents),
+                    variants: Array.from(colour.querySelectorAll('[data-variant-id]')).map(function (variant) {
+                        return { id: Number(variant.dataset.variantId), size: variant.dataset.size,
+                            available: Number(variant.dataset.available) };
+                    })
+                };
+            })
+        };
+    });
     const labels = { top: 'Top', bottom: 'Bottom', dress: 'Dress' };
     const categories = { top: 'Tops', bottom: 'Bottoms', dress: 'Dresses' };
     const state = {};
-    let mode = 'separates';
+    let mode = root.querySelector('input[name="outfit_mode"]:checked').value;
 
     function money(cents) { return 'SGD $' + (cents / 100).toFixed(2); }
     function activeSlots() { return mode === 'dress' ? ['dress'] : ['top', 'bottom']; }
@@ -144,6 +159,7 @@
             : 'Choose ' + (mode === 'dress' ? 'a dress and size' : 'a top, a bottom and their sizes') + ' to complete your look.';
         document.getElementById('outfit-completeness').textContent = message;
         document.getElementById('outfit-completeness').classList.toggle('is-complete', complete);
+        document.getElementById('outfit-add').disabled = !complete;
         if (announce) { document.getElementById('outfit-status').textContent = announce + ' Outfit subtotal ' + money(total) + '. ' + message; }
     }
 
@@ -158,8 +174,11 @@
         const fieldset = root.querySelector('[data-slot="' + key + '"]');
         const select = fieldset.querySelector('[data-product]');
         const product = products.find(function (item) { return item.id === Number(select.value); });
+        const selectedColour = fieldset.querySelector('input[name="' + key + '_colour"]:checked');
+        const selectedVariant = fieldset.querySelector('input[name="' + key + '_variant"]:checked');
         state[key] = { productId: product ? product.id : null,
-            colourId: product && product.colours.length ? product.colours[0].id : null, variantId: null };
+            colourId: selectedColour ? Number(selectedColour.value) : null,
+            variantId: selectedVariant ? Number(selectedVariant.value) : null };
         select.addEventListener('change', function () {
             const product = products.find(function (item) {
                 return item.id === Number(select.value) && item.category === categories[key];
@@ -199,20 +218,23 @@
         updateSlot(key);
     });
 
+    function updateMode() {
+        document.getElementById('styling-board').dataset.mode = mode;
+        document.getElementById('board-mode-label').textContent = mode === 'dress' ? 'THE ONE-PIECE EDIT' : 'THE TWO-PIECE EDIT';
+        root.querySelector('[data-board-lead]').textContent = mode === 'dress' ? 'a whole look' : 'a little better';
+        root.querySelector('[data-board-emphasis]').textContent = mode === 'dress' ? 'in one.' : 'together.';
+        Object.keys(labels).forEach(function (key) {
+            const active = activeSlots().includes(key);
+            const fieldset = root.querySelector('[data-slot="' + key + '"]');
+            fieldset.hidden = !active;
+            fieldset.disabled = !active;
+            root.querySelector('[data-preview="' + key + '"]').hidden = !active;
+        });
+    }
     root.querySelectorAll('input[name="outfit_mode"]').forEach(function (input) {
         input.addEventListener('change', function () {
             mode = input.value;
-            document.getElementById('styling-board').dataset.mode = mode;
-            document.getElementById('board-mode-label').textContent = mode === 'dress' ? 'THE ONE-PIECE EDIT' : 'THE TWO-PIECE EDIT';
-            root.querySelector('[data-board-lead]').textContent = mode === 'dress' ? 'a whole look' : 'a little better';
-            root.querySelector('[data-board-emphasis]').textContent = mode === 'dress' ? 'in one.' : 'together.';
-            Object.keys(labels).forEach(function (key) {
-                const active = activeSlots().includes(key);
-                const fieldset = root.querySelector('[data-slot="' + key + '"]');
-                fieldset.hidden = !active;
-                fieldset.disabled = !active;
-                root.querySelector('[data-preview="' + key + '"]').hidden = !active;
-            });
+            updateMode();
             updateSummary(mode === 'dress' ? 'Dress styling board.' : 'Top and bottom styling board.');
         });
     });
@@ -220,5 +242,14 @@
         Object.keys(labels).forEach(clearSlot);
         updateSummary('Styling board cleared.');
     });
+    document.getElementById('outfit-form').addEventListener('submit', function (event) {
+        updateSummary();
+        if (document.getElementById('outfit-add').disabled) { event.preventDefault(); }
+    });
+    // Recheck controls restored by browser history against the rendered availability.
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) { window.location.reload(); }
+    });
+    updateMode();
     updateSummary();
 }());

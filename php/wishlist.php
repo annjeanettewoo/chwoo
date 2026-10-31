@@ -151,7 +151,9 @@ function chwooWishlistAfterAuthentication($conn) {
         }
     }
     unset($_SESSION['chwoo_auth_feedback']);
-    // A checkout-initiated sign-in still resumes checkout after saving the favourite.
-    if (!empty($_SESSION['chwoo_checkout_login'])) { chwooAuthAccount($message); }
+    // Save the favourite, then honor checkout or a later Orders sign-in intent.
+    if (!empty($_SESSION['chwoo_checkout_login']) || !empty($_SESSION['chwoo_orders_login'])) {
+        chwooAuthAccount($message);
+    }
     chwooWishlistRedirect($returnTo, $message);
 }

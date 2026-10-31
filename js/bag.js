@@ -26,7 +26,8 @@
         overlay.hidden = false;
         requestAnimationFrame(function () {
             overlay.classList.add('is-open');
-            closeButton.focus();
+            // Let the visibility transition start before moving focus into the drawer.
+            requestAnimationFrame(function () { if (isOpen) { closeButton.focus(); } });
         });
         drawer.classList.add('is-open');
         triggers.forEach(function (trigger) { trigger.setAttribute('aria-expanded', 'true'); });
@@ -59,6 +60,12 @@
     });
     closeButton.addEventListener('click', closeBag);
     overlay.addEventListener('click', closeBag);
+    drawer.addEventListener('transitionend', function (event) {
+        // Visibility can still be hidden on the first opening frame in some browsers.
+        if (event.target === drawer && isOpen && !drawer.contains(document.activeElement)) {
+            closeButton.focus();
+        }
+    });
     document.addEventListener('keydown', function (event) {
         if (!drawer.classList.contains('is-open')) { return; }
         if (event.key === 'Escape') { closeBag(); }

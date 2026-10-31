@@ -152,15 +152,11 @@ function shopUrl($category, $sort) {
                 Shop
             </a>
 
-            <a href="about.html">
-                About Us
-            </a>
+            <!-- ABOUT is on hold until a page is available. -->
 
-            <a href="contact.html">
-                Contact
-            </a>
+            <!-- Contact is on hold until a page is available. -->
 
-            <a href="orders.html">
+            <a href="account.php?section=orders">
                 Orders
             </a>
 

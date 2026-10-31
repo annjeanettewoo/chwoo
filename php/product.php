@@ -245,8 +245,9 @@ if ($product && $selectedColour) {
                                 <?php endforeach; ?>
                             </fieldset>
 
-                            <?php $selectionAvailable = $selectedSize !== '' && ($selectedColour['stock'][$selectedSize] ?? 0) > 0; ?>
-                            <p id="stock-message" class="product-stock-message<?= $sizeError ? ' error' : ($selectedSize ? ($selectionAvailable ? ' success' : ' error') : '') ?>" role="status" aria-live="polite"><?= !$selectedSize ? 'Please choose a size.' : ($selectionAvailable ? 'Size ' . e($selectedSize) . ' is available.' : 'Size ' . e($selectedSize) . ' is unavailable in ' . e($selectedColour['name']) . '.') ?></p>
+                            <?php $selectedQuantity = $selectedColour['stock'][$selectedSize] ?? 0;
+                            $selectionAvailable = $selectedSize !== '' && $selectedQuantity > 0; ?>
+                            <p id="stock-message" class="product-stock-message<?= $sizeError ? ' error' : ($selectedSize ? ($selectionAvailable ? ' success' : ' error') : '') ?>" role="status" aria-live="polite"><?= !$selectedSize ? 'Please choose a size.' : ($selectionAvailable ? 'Size ' . e($selectedSize) . ' · ' . $selectedQuantity . ' available' : 'Size ' . e($selectedSize) . ' is unavailable') ?></p>
                             <div class="product-action-row">
                                 <button class="add-to-bag" type="submit" name="action" value="add" <?= $selectedSize && !$selectionAvailable ? 'disabled' : '' ?>>ADD TO BAG</button>
                                 <?php chwooWishlistButton($product, $wishlistIds); ?>
@@ -298,15 +299,11 @@ if ($product && $selectedColour) {
                 Shop
             </a>
 
-            <a href="about.html">
-                About Us
-            </a>
+            <!-- ABOUT is on hold until a page is available. -->
 
-            <a href="contact.html">
-                Contact
-            </a>
+            <!-- Contact is on hold until a page is available. -->
 
-            <a href="orders.html">
+            <a href="account.php?section=orders">
                 Orders
             </a>
 
