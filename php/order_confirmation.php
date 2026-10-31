@@ -4,17 +4,11 @@ header('Cache-Control: no-store');
 $identity = chwooCurrentCustomer();
 if (!$identity) { header('Location: login.php', true, 303); exit; }
 require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/order_mail.php';
+require_once __DIR__ . '/orders.php';
 $orderId = is_string($_GET['id'] ?? null) ? filter_var($_GET['id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) : false;
 $order = $orderId ? chwooSavedOrder($conn, $orderId, (int)$identity['customer_id']) : null;
 if (!$order) { http_response_code(404); }
 require_once __DIR__ . '/bag.php';
-$mailConfig = require __DIR__ . '/mail_config.php';
-$showAcknowledgementPreview = !($order && ($mailConfig['enabled'] ?? false)
-    && ($mailConfig['delivery_verified'] ?? false) && ($order['acknowledgement_status'] ?? '') === 'Accepted');
-$mailMessages = ['Prepared' => 'Acknowledgement email prepared for testing. It has not been sent.',
-    'Accepted' => 'Acknowledgement accepted by the local mail transport. Mailbox delivery has not been verified.',
-    'Failed' => 'The acknowledgement email could not be sent. Your confirmed order is unchanged.'];
 ?>
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title><?= $order ? 'Order #' . (int)$order['order_id'] : 'Order unavailable' ?> | CHWOO</title>
@@ -41,11 +35,6 @@ $mailMessages = ['Prepared' => 'Acknowledgement email prepared for testing. It h
         <section class="checkout-delivery-review" aria-labelledby="delivery-title"><div class="checkout-section-heading"><h2 id="delivery-title">Delivery details</h2></div>
             <dl class="checkout-delivery-details"><div><dt>Full name</dt><dd><?= chwooEscape($order['recipient_name']) ?></dd></div><div><dt>Email address</dt><dd><?= chwooEscape($order['contact_email']) ?></dd></div><div><dt>Contact number</dt><dd><?= chwooEscape($order['contact_phone']) ?></dd></div><div><dt>Delivery address</dt><dd><?= nl2br(chwooEscape($order['delivery_address'])) ?></dd></div></dl>
         </section>
-        <?php if ($showAcknowledgementPreview): ?>
-        <section class="checkout-acknowledgement" aria-labelledby="mail-title"><h2 id="mail-title">Order acknowledgement</h2><p><?= chwooEscape($mailMessages[$order['acknowledgement_status'] ?? 'Prepared']) ?></p>
-            <details><summary>View acknowledgement email text</summary><p>This is the prepared email content; this preview does not establish delivery.</p><pre><?= chwooEscape(chwooAcknowledgementText($order)) ?></pre></details>
-        </section>
-        <?php endif; ?>
     </div><aside class="checkout-summary"><p class="checkout-eyebrow">ORDER #<?= (int)$order['order_id'] ?></p><h2>Your order total</h2>
         <dl class="checkout-totals"><div><dt>Subtotal</dt><dd>SGD $<?= chwooEscape($order['item_subtotal']) ?></dd></div><div><dt>Delivery</dt><dd>SGD $<?= chwooEscape($order['shipping_charge']) ?></dd></div><div class="checkout-grand-total"><dt>Final total</dt><dd>SGD $<?= chwooEscape($order['total_amount']) ?></dd></div></dl>
         <a class="checkout-button" href="account.php?section=orders">View your orders</a><p><a href="shop.php">Continue shopping &rarr;</a></p>
