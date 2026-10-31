@@ -5,3 +5,6 @@
 # Operating system files
 .DS_Store
 Thumbs.db
+
+# Task report
+TASK*_REPORT.md
