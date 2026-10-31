@@ -1,6 +1,6 @@
 // Progressive enhancement. PHP repeats these checks for every submitted form.
 document.querySelectorAll('[data-checkout-form]').forEach(function (form) {
-    var inputs = Array.from(form.querySelectorAll('input:not([type="hidden"]), textarea'));
+    var inputs = Array.from(form.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]), textarea'));
     var touched = {};
     form.noValidate = true;
 

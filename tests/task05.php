@@ -78,7 +78,8 @@ try {
     check(isset(chwooCheckoutErrors($values)['full_name']), 'Oversized name remains invalid');
 
     $page = request('php/checkout.php');
-    check($page['status'] === 200 && str_contains($page['html'], 'Add a piece to your bag'), 'Empty checkout is graceful and cannot proceed');
+    check($page['status'] === 200 && str_contains($page['html'], 'Your bag is feeling a little lonely.')
+        && !str_contains($page['html'], 'class="checkout-progress"') && !str_contains($page['html'], 'name="checkout_token"'), 'Empty checkout is graceful and cannot proceed');
     $page = request('php/product.php?id=1');
     $csrf = token($page['html']);
     check(str_contains($page['html'], '../css/header.css'), 'Product loads the shared navigation styling');
@@ -134,7 +135,7 @@ try {
     check(str_contains($page['html'], 'Your selected pieces') && str_contains($page['html'], 'Size: ' . $row['size_code'])
         && str_contains($page['html'], 'Unit price: SGD $' . number_format((float)$row['price'], 2)), 'Review uses actual selections and database unit prices, ignoring submitted prices');
     check(str_contains($page['html'], '&lt;script&gt;test&lt;/script&gt;') && !str_contains($page['html'], '<script>test</script>'), 'Delivery notes are escaped in review');
-    check(str_contains($page['html'], 'Continue to simulated payment') && str_contains($page['html'], 'No real payment is taken'), 'Review provides a clearly labelled simulated-payment transition');
+    check(str_contains($page['html'], 'Continue to payment') && str_contains($page['html'], 'name="checkout_token"'), 'Review provides the protected payment transition');
     $refreshed = request('php/checkout.php?step=review');
     check($refreshed['html'] === $page['html'], 'Review refresh is stable');
     $page = request('php/checkout.php');
@@ -155,7 +156,7 @@ try {
     check(str_contains($page['html'], 'Quantity: 1'), 'Quantity decreases return the correct selection');
     request('php/bag_action.php', $control + ['action' => 'remove']);
     $page = request('php/checkout.php?step=review');
-    check(str_contains($page['html'], 'Add a piece to your bag') && !str_contains($page['html'], 'Item removed'), 'Removing the final item produces an empty checkout silently');
+    check(str_contains($page['html'], 'Your bag is feeling a little lonely.') && !str_contains($page['html'], 'Item removed'), 'Removing the final item produces an empty checkout silently');
 
     // Disposable product data exercises exact shipping thresholds and stock failures.
     $name = 'Task05 disposable ' . $suffix;
@@ -218,7 +219,7 @@ try {
     check(str_contains($page['html'], 'Only 1 available. Please reduce the quantity.'), 'Insufficient stock reports the current database limit');
     $conn->query("UPDATE products SET is_active=0 WHERE product_id=$productId");
     $page = request('php/checkout.php?step=review');
-    check(str_contains($page['html'], 'Unavailable bag entries were removed.') && str_contains($page['html'], 'Add a piece'), 'Unavailable product is safely removed with an explanation');
+    check(str_contains($page['html'], 'Unavailable bag entries were removed.') && str_contains($page['html'], 'Your bag is feeling a little lonely.'), 'Unavailable product is safely removed with an explanation');
     $conn->query("UPDATE products SET is_active=1 WHERE product_id=$productId");
     request('php/product.php?id=' . $productId, $addData);
     $conn->query("DELETE FROM product_variants WHERE variant_id=$variantId");
@@ -235,10 +236,10 @@ try {
     check(redirectsTo($page, '/php/login.php'), 'Valid POST logout removes authenticated access');
     $normalLogin = request('php/auth_action.php', ['form_token' => $csrf, 'action' => 'login', 'email' => $email, 'password' => $password]);
     check(redirectsTo($normalLogin, '/php/account.php'), 'Normal login still opens Account Dashboard');
-    $page = request('php/checkout.php?step=review');
-    check(redirectsTo($page, 'checkout.php'), 'Logout clears temporary checkout details');
     request('php/product.php?id=' . $row['product_id'], ['form_token' => $csrf, 'action' => 'add',
         'product_id' => $row['product_id'], 'colour' => $row['colour_id'], 'size' => $row['size_code']]);
+    $page = request('php/checkout.php?step=review');
+    check(redirectsTo($page, 'checkout.php'), 'Logout clears temporary checkout details even after refilling the bag');
     request('php/auth_action.php', ['form_token' => $csrf, 'action' => 'logout']);
     request('php/wishlist_action.php', ['form_token' => $csrf, 'product_id' => $row['product_id'], 'action' => 'save']);
     request('php/checkout.php');

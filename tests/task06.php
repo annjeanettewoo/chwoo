@@ -11,6 +11,7 @@ $log = tempnam(sys_get_temp_dir(), 'chwoo-task06-');
 $handles = [];
 $originalDb = getenv('CHWOO_DB_NAME');
 $originalMailMode = getenv('CHWOO_MAIL_PREPARE_ONLY');
+$originalFailureMode = getenv('CHWOO_TEST_PAYMENT_FAILURE');
 function check($condition, $label) {
     global $checks;
     if (!$condition) { throw new RuntimeException('FAIL: ' . $label); }
@@ -117,6 +118,7 @@ try {
         && countRows('orders') === 0 && countRows('customers') === 0, 'Fresh canonical schema then seed imports successfully into an isolated database');
     putenv('CHWOO_DB_NAME=' . $testDb);
     putenv('CHWOO_MAIL_PREPARE_ONLY=1');
+    putenv('CHWOO_TEST_PAYMENT_FAILURE=1');
     $socket = stream_socket_server('tcp://127.0.0.1:0');
     $address = stream_socket_get_name($socket, false); fclose($socket);
     $port = (int)substr(strrchr($address, ':'), 1);
@@ -155,13 +157,19 @@ try {
     $token = review($alice, $csrf);
     pay($alice, $csrf, $token, 'success');
     check(countRows('orders') === 0 && stock(1) === 5, 'Success POST cannot bypass the review-to-payment transition');
+    $page = request($alice, 'php/checkout.php?step=review');
+    check(str_contains($page['html'], 'Please return to order review before simulating payment.')
+        && !str_contains(request($alice, 'php/checkout.php?step=review')['html'], 'Please return to order review before simulating payment.'),
+        'A genuine payment validation error displays once on review and is consumed on refresh');
     pay($alice, $csrf, $token, 'review');
     $page = request($alice, 'php/payment.php');
-    check(str_contains($page['html'], 'Simulate Successful Payment') && str_contains($page['html'], 'Simulate Failed Payment')
-        && !preg_match('/name="(?:card|cvv|card_number)"/', $page['html']), 'Payment offers both clearly labelled simulations and collects no card data');
+    check(str_contains($page['headers']['cache-control'] ?? '', 'no-store')
+        && str_contains($page['html'], '../js/checkout-history.js'), 'Payment forbids HTTP caching and rechecks restored browser history pages');
+    check(str_contains($page['html'], 'Proceed to Payment') && str_contains($page['html'], 'Return to order review')
+        && !str_contains($page['html'], 'Simulate') && !preg_match('/name="(?:card|cvv|card_number|card_code|card_expiry)"/', $page['html']), 'Payment handoff has a normal customer interface and no card collection');
     pay($alice, $csrf, $token, 'failure');
     $page = request($alice, 'php/payment.php');
-    check(str_contains($page['html'], 'Simulated payment failed.') && !str_contains($page['html'], 'role="alert" data-auto-dismiss'), 'Payment failure stays visible and is not a dismissible success');
+    check(str_contains($page['html'], 'Payment could not be completed.') && !str_contains($page['html'], 'role="alert" data-auto-dismiss'), 'Controlled provider failure stays visible and is not a dismissible success');
     check(countRows('orders') === 0 && stock(1) === 5 && str_contains(request($alice, 'php/cart.php')['html'], '2 item(s)'), 'Failed payment preserves bag and inventory and creates no order');
     pay($alice, 'invalid', $token, 'success');
     check(countRows('orders') === 0 && stock(1) === 5, 'Invalid payment CSRF cannot finalise an order');
@@ -193,6 +201,31 @@ try {
         && str_contains($confirmation['html'], 'Singapore 012345') && str_contains($confirmation['html'], 'Demo only &lt;test&gt;'), 'Confirmation displays saved delivery details with escaping');
     check(str_contains($confirmation['html'], 'prepared for testing. It has not been sent.') && $order['acknowledgement_status'] === 'Prepared'
         && $order['acknowledgement_sent_at'] === null, 'Default acknowledgement is accurately labelled prepared, never delivered');
+    $oldPayment = request($alice, 'php/payment.php');
+    check($oldPayment['status'] === 303 && ($oldPayment['headers']['location'] ?? '') === 'checkout.php',
+        'Old payment GET returns to empty checkout without generating a review warning');
+    foreach (['php/checkout.php', 'php/checkout.php?step=review'] as $oldUrl) {
+        $page = request($alice, $oldUrl);
+        check($page['status'] === 200 && str_contains($page['headers']['cache-control'] ?? '', 'no-store')
+            && str_contains($page['html'], 'Your bag is feeling a little lonely.')
+            && str_contains($page['html'], 'A little something caught your eye? Find your next favourite piece.')
+            && str_contains($page['html'], 'Explore the collection')
+            && str_contains($page['html'], '../js/checkout-history.js')
+            && !str_contains($page['html'], 'class="checkout-progress"')
+            && !str_contains($page['html'], 'name="checkout_token"') && !str_contains($page['html'], 'class="checkout-alert"'),
+            'Completed checkout URL has a friendly empty state, no payment controls or stale errors: ' . $oldUrl);
+    }
+    pay($alice, $csrf, $token, 'review');
+    $page = request($alice, 'php/checkout.php?step=review');
+    check(!str_contains($page['html'], 'class="checkout-alert"')
+        && str_contains($page['html'], 'Your bag is feeling a little lonely.')
+        && !str_contains(request($alice, 'php/checkout.php')['html'], 'class="checkout-alert"'),
+        'Resubmitted old review handoff cannot leave an error on an empty checkout');
+    $emptyPost = request($alice, 'php/checkout.php', delivery($csrf) + ['save_address' => '1']);
+    check($emptyPost['status'] === 303 && ($emptyPost['headers']['location'] ?? '') === 'checkout.php'
+        && countRows('customer_addresses') === 0 && countRows('orders') === 1 && stock(1) === 3
+        && !str_contains(request($alice, 'php/checkout.php')['html'], 'name="checkout_token"'),
+        'Old delivery POST cannot prepare a purchase or save an address when the bag is empty');
     $again = pay($alice, $csrf, $token, 'success');
     request($alice, 'php/order_confirmation.php?id=' . $orderId);
     check(($again['headers']['location'] ?? '') === 'order_confirmation.php?id=' . $orderId && countRows('orders') === 1 && stock(1) === 3, 'Repeated POST and confirmation refresh do not duplicate orders or stock deduction');
@@ -292,6 +325,7 @@ try {
     add($alice, $csrf, 2, 2, 'XS');
     check(str_contains(request($alice, 'php/product.php?id=2&colour=2&size=XS&bag=open')['html'], 'class="product-message success" role="status" data-auto-dismiss'),
         'Add-to-bag success uses the shared success-only dismissal behavior');
+    require __DIR__ . '/saved_addresses.php';
     if (in_array('--preview', $argv, true)) {
         echo "BROWSER PREVIEW: $base\nFictitious test login: task06-alice@example.com / FictionalTest06!\n";
         echo "Saved confirmation: $base/php/order_confirmation.php?id=$orderId\nPress Enter to remove the test database and server.\n";
@@ -312,6 +346,7 @@ try {
     }
     $originalDb === false ? putenv('CHWOO_DB_NAME') : putenv('CHWOO_DB_NAME=' . $originalDb);
     $originalMailMode === false ? putenv('CHWOO_MAIL_PREPARE_ONLY') : putenv('CHWOO_MAIL_PREPARE_ONLY=' . $originalMailMode);
+    $originalFailureMode === false ? putenv('CHWOO_TEST_PAYMENT_FAILURE') : putenv('CHWOO_TEST_PAYMENT_FAILURE=' . $originalFailureMode);
     session_destroy();
 }
 check(liveSnapshot() === $liveBefore, 'Installed chwoo_db catalogue, stock, customer accounts, wishlist and orders remain unchanged');

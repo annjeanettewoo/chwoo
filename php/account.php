@@ -7,6 +7,7 @@ if (!$identity) {
     exit;
 }
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/saved_details.php';
 $customerId = (int)$identity['customer_id'];
 $stmt = $conn->prepare('SELECT full_name, email, created_at FROM customers WHERE customer_id = ?');
 $stmt->bind_param('i', $customerId);
@@ -20,7 +21,7 @@ if (!$customer) {
     chwooAuthRedirect('', ['form' => 'Please log in again.']);
 }
 $sections = ['dashboard' => 'Dashboard', 'orders' => 'Orders', 'wishlist' => 'Wishlist',
-             'details' => 'Account Details', 'cards' => 'Saved Cards'];
+             'details' => 'Account Details', 'addresses' => 'Addresses', 'cards' => 'Saved Cards'];
 $section = $_GET['section'] ?? 'dashboard';
 if (!is_string($section) || !isset($sections[$section])) { $section = 'dashboard'; }
 $orders = [];
@@ -144,7 +145,10 @@ $firstName = explode(' ', $customer['full_name'])[0];
         </section>
         <?php endif; ?>
         <?php if ($section === 'cards'): ?>
-        <section class="account-section"><div class="account-empty"><span class="account-empty-mark" aria-hidden="true">&mdash;</span><h2>No saved cards.</h2><p>Saving payment cards is not available at CHWOO.<br>There are no payment cards stored in your account.</p><a class="account-text-link" href="shop.php">Back to the collection &rarr;</a></div></section>
+        <section class="account-section"><div class="account-empty"><h2>No saved cards.</h2><p>CHWOO does not collect or store card details.</p></div></section>
+        <?php endif; ?>
+        <?php if ($section === 'addresses'): ?>
+        <?php include __DIR__ . '/account_saved_details.php'; ?>
         <?php endif; ?>
     </div>
 </main>

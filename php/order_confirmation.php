@@ -9,6 +9,9 @@ $orderId = is_string($_GET['id'] ?? null) ? filter_var($_GET['id'], FILTER_VALID
 $order = $orderId ? chwooSavedOrder($conn, $orderId, (int)$identity['customer_id']) : null;
 if (!$order) { http_response_code(404); }
 require_once __DIR__ . '/bag.php';
+$mailConfig = require __DIR__ . '/mail_config.php';
+$showAcknowledgementPreview = !($order && ($mailConfig['enabled'] ?? false)
+    && ($mailConfig['delivery_verified'] ?? false) && ($order['acknowledgement_status'] ?? '') === 'Accepted');
 $mailMessages = ['Prepared' => 'Acknowledgement email prepared for testing. It has not been sent.',
     'Accepted' => 'Acknowledgement accepted by the local mail transport. Mailbox delivery has not been verified.',
     'Failed' => 'The acknowledgement email could not be sent. Your confirmed order is unchanged.'];
@@ -24,8 +27,7 @@ $mailMessages = ['Prepared' => 'Acknowledgement email prepared for testing. It h
     <div class="checkout-heading"><h1>Order unavailable.</h1><p>We couldn’t find this order in your account.</p></div>
     <?php else: ?>
     <div class="checkout-heading"><p class="checkout-eyebrow">ORDER #<?= (int)$order['order_id'] ?></p><h1>Your pieces are confirmed.</h1><p>Your order has been recorded. Thank you for shopping with CHWOO.</p></div>
-    <div class="checkout-confirmation-status"><strong><?= chwooEscape($order['order_status']) ?></strong><span><?= chwooEscape(date('j F Y, g:i a', strtotime($order['ordered_at']))) ?></span><span>Payment: <?= chwooEscape($order['payment_status']) ?> (simulated)</span></div>
-    <p class="checkout-help">This purchase used demonstration payment. No real payment was taken.</p>
+    <dl class="checkout-confirmation-status"><div><dt>Order status</dt><dd><?= chwooEscape($order['order_status']) ?></dd></div><div><dt>Order date</dt><dd><?= chwooEscape(date('j F Y, g:i A', strtotime($order['ordered_at']))) ?></dd></div><div><dt>Payment status</dt><dd><?= chwooEscape($order['payment_status']) ?></dd></div></dl>
     <div class="checkout-layout"><div>
         <section aria-labelledby="purchased-title"><div class="checkout-section-heading"><h2 id="purchased-title">Your purchased pieces</h2></div>
         <?php foreach ($order['items'] as $item): ?>
@@ -39,9 +41,11 @@ $mailMessages = ['Prepared' => 'Acknowledgement email prepared for testing. It h
         <section class="checkout-delivery-review" aria-labelledby="delivery-title"><div class="checkout-section-heading"><h2 id="delivery-title">Delivery details</h2></div>
             <dl class="checkout-delivery-details"><div><dt>Full name</dt><dd><?= chwooEscape($order['recipient_name']) ?></dd></div><div><dt>Email address</dt><dd><?= chwooEscape($order['contact_email']) ?></dd></div><div><dt>Contact number</dt><dd><?= chwooEscape($order['contact_phone']) ?></dd></div><div><dt>Delivery address</dt><dd><?= nl2br(chwooEscape($order['delivery_address'])) ?></dd></div></dl>
         </section>
+        <?php if ($showAcknowledgementPreview): ?>
         <section class="checkout-acknowledgement" aria-labelledby="mail-title"><h2 id="mail-title">Order acknowledgement</h2><p><?= chwooEscape($mailMessages[$order['acknowledgement_status'] ?? 'Prepared']) ?></p>
             <details><summary>View acknowledgement email text</summary><p>This is the prepared email content; this preview does not establish delivery.</p><pre><?= chwooEscape(chwooAcknowledgementText($order)) ?></pre></details>
         </section>
+        <?php endif; ?>
     </div><aside class="checkout-summary"><p class="checkout-eyebrow">ORDER #<?= (int)$order['order_id'] ?></p><h2>Your order total</h2>
         <dl class="checkout-totals"><div><dt>Subtotal</dt><dd>SGD $<?= chwooEscape($order['item_subtotal']) ?></dd></div><div><dt>Delivery</dt><dd>SGD $<?= chwooEscape($order['shipping_charge']) ?></dd></div><div class="checkout-grand-total"><dt>Final total</dt><dd>SGD $<?= chwooEscape($order['total_amount']) ?></dd></div></dl>
         <a class="checkout-button" href="account.php?section=orders">View your orders</a><p><a href="shop.php">Continue shopping &rarr;</a></p>

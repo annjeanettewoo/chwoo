@@ -76,6 +76,22 @@ CREATE TABLE customers (
     UNIQUE KEY uq_customers_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Optional customer-owned saved delivery addresses.
+CREATE TABLE customer_addresses (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT UNSIGNED NOT NULL,
+    recipient_name VARCHAR(120) NOT NULL,
+    contact_email VARCHAR(190) NOT NULL,
+    contact_phone VARCHAR(30) NOT NULL,
+    address TEXT NOT NULL,
+    postal_code CHAR(6) NOT NULL,
+    notes VARCHAR(500) NOT NULL DEFAULT '',
+    fingerprint CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_customer_address (customer_id, fingerprint),
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Product-level favourites: one product per customer, independent of colour/size.
 CREATE TABLE wishlist (
     wishlist_id INT UNSIGNED NOT NULL AUTO_INCREMENT,

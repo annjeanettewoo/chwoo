@@ -1,10 +1,32 @@
 # CHWOO database
 
-CHWOO uses PHP/MySQLi with the `chwoo_db` database. The database has eight tables, with prices and images stored per colourway, inventory stored per colour/size variant, and product-level wishlists linked to customers. `schema.sql` defines the complete structure; `seed_products.sql` is the authoritative source for the demonstration catalogue. No migration or previous SQL patch is needed for a fresh installation.
+CHWOO uses PHP/MySQLi with the `chwoo_db` database. The latest database has nine tables, including optional customer-owned saved addresses, with prices and images stored per colourway, inventory stored per colour/size variant, and product-level wishlists linked to customers. `schema.sql` defines the complete structure; `seed_products.sql` is the authoritative source for the demonstration catalogue. No migration or previous SQL patch is needed for a fresh installation.
+
+## Task 06A.1: payment handoff and saved addresses
+
+Payment is assumed to be handled by a third-party provider under the IE4727 guidelines. No portal, redirect, gateway, card fields, card validation or payment-method storage is implemented. **Proceed to Payment** is a CSRF-protected POST representing a successful simulated provider response. It invokes the existing transaction, stock locks and unique-token workflow. The UI's `Paid` status is a local saved status, not evidence of external financial settlement.
+
+The unsuccessful-provider test action is accepted only when the server process has `CHWOO_TEST_PAYMENT_FAILURE=1` AND `CHWOO_DB_NAME` matches the generated `chwoo_task06_test_` plus 12 hexadecimal characters. Both conditions are required. The test runner sets/restores the flag for its disposable environment; it does not change normal purchases. There is no visible failure button, and URL parameters cannot enable the test mode. Other invalid requests and transaction errors retain their existing checks and preserve the bag.
+
+`customer_addresses` is the only new table. It has an unsigned auto-increment `id` primary key; a customer FK with delete cascade; recipient name/email/phone, address text, six-character postal code, optional notes, creation timestamp and a 64-character deduplication fingerprint. Unique `(customer_id, fingerprint)` prevents repeated saves of the same recipient/contact/address. Deduplication normalises case and whitespace and excludes email/notes; saving again does not overwrite an existing record. The normal product seed is unchanged and contains no addresses or test customers.
+
+The save checkbox defaults to unchecked. Saved address selection uses an ownership-scoped, CSRF-protected POST to prefill the editable delivery form; the customer must still continue through validation and review. One-off changes do not overwrite saved addresses. Removal uses an ownership-scoped prepared DELETE and CSRF validation. Orders retain independent delivery snapshots after address deletion. If the new table has not been installed, ordinary checkout still works with a new address; opting to save reports an error and can be retried with the option unchecked.
+
+### Manual local database setup
+
+No live schema or records were altered by this task. Preferred setup: back up any important local records, use an intentionally empty/disposable database, import the complete latest `database/schema.sql`, then `database/seed_products.sql` through phpMyAdmin. Verify nine InnoDB tables, 13 products, 16 colours, 64 variants and zero seeded addresses/customers/orders. Do not import the full files over a populated store.
+
+To retain the installed store instead: back it up, open **http://localhost:8000/phpmyadmin/ → chwoo_db**, verify `customers.customer_id` is an unsigned INT primary key on InnoDB, and confirm `customer_addresses` is absent. Open **SQL**, copy only the complete `CREATE TABLE customer_addresses (...) ENGINE=InnoDB ...;` statement from the latest canonical `schema.sql`, and execute it once. Do not run the surrounding database, customer, catalogue or order statements. Verify **customer_addresses → Structure** against the canonical definition: primary key, unique `uq_customer_address`, FK, defaults and utf8mb4 collation. If the table already exists, inspect rather than rerunning CREATE. This is a manual setup instruction, not a migration or local update script. No existing order-processing definitions change.
+
+### Acknowledgement preview and verification
+
+Customer wording thanks the customer and confirms the recorded order; it makes no bank-settlement claim. Prepared/Accepted/Failed status logic and local-only recipient restrictions remain unchanged. Mail delivery stays disabled. Only after the authorised local mailbox has been configured AND inbox delivery verified should the developer set `delivery_verified=true` in `php/mail_config.php`. With delivery enabled, this flag hides the technical preview for orders whose transport status is Accepted. Prepared/failed orders continue to show truthful diagnostics. This flag does not configure SMTP or prove delivery by itself. No SMTP setup or external email service is included.
+
+Run `php tests/task06.php` with XAMPP's PHP binary for the updated order and address integration suite, which also runs Task 05. Its test database/server are disposable; the installed database is checked for unchanged records. Run `node tests/checkout-validation.mjs` and `node tests/notifications.mjs` separately. No card-form or saved-payment-method files/tables are required.
 
 ## Task 06 setup and order fields
 
-Task 06 adds the following definitions to the canonical schema. There are still eight tables; the general product seed is unchanged and contains no customer or order fixtures.
+Task 06 added the following definitions to its eight-table baseline; Task 06A.1 adds the ninth table above. The general product seed is unchanged and contains no customer or order fixtures.
 
 | Table / definition | Purpose |
 | --- | --- |

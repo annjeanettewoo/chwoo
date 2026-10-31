@@ -31,6 +31,7 @@ try {
             throw new RuntimeException('Please refresh the page and try again.');
         }
         if ($action === 'success') {
+            // Academic mock: this POST represents the assumed provider's success response.
             // Reads the unsanitised session bag before bag.php can remove stale entries.
             $result = chwooFinaliseOrder($conn, $customerId, $token);
             if (!$result['replayed']) {
@@ -44,7 +45,7 @@ try {
         $purchase = $_SESSION['chwoo_purchase'] ?? [];
         if (!is_string($token) || !hash_equals($purchase['token'] ?? '', $token)
             || ($purchase['customer_id'] ?? null) !== $customerId) {
-            throw new RuntimeException('Please return to order review before simulating payment.');
+            throw new RuntimeException('Please return to order review before continuing to payment.');
         }
         if ($action === 'review') {
             require_once __DIR__ . '/bag.php';
@@ -60,10 +61,18 @@ try {
             }
             $_SESSION['chwoo_purchase']['ready'] = true;
             unset($_SESSION['chwoo_payment_error'], $_SESSION['chwoo_order_error']);
-        } elseif ($action === 'failure' && ($purchase['ready'] ?? false)) {
-            $_SESSION['chwoo_payment_error'] = 'Simulated payment failed. No order was recorded and no stock was deducted. Your bag is saved; you can retry or return to review.';
-        } else { throw new RuntimeException('Please use the simulated payment controls.'); }
+        } elseif ($action === 'failure' && ($purchase['ready'] ?? false)
+            && getenv('CHWOO_TEST_PAYMENT_FAILURE') === '1'
+            && preg_match('/\Achwoo_task06_test_[a-f0-9]{12}\z/D', getenv('CHWOO_DB_NAME') ?: '')) {
+            // Fixture-only unsuccessful provider response, never enabled by a public URL.
+            $_SESSION['chwoo_payment_error'] = 'Payment could not be completed. No order was recorded and no stock was deducted. Your bag is saved; please retry or return to review.';
+        } else { throw new RuntimeException('Please use the payment controls.'); }
         header('Location: payment.php', true, 303); exit;
+    }
+    require_once __DIR__ . '/bag.php';
+    // History navigation after purchase is an empty checkout, not a review failure.
+    if (!$chwooBagItems) {
+        header('Location: checkout.php', true, 303); exit;
     }
     $purchase = $_SESSION['chwoo_purchase'] ?? [];
     $checkout = $_SESSION['chwoo_checkout'] ?? [];
@@ -72,7 +81,6 @@ try {
         || ($checkout['customer_id'] ?? null) !== $customerId || chwooCheckoutErrors($details)) {
         throw new RuntimeException('Please complete order review before continuing to payment.');
     }
-    require_once __DIR__ . '/bag.php';
     if (chwooOrderCart($_SESSION['chwoo_cart'] ?? []) !== $purchase['cart']
         || !hash_equals($purchase['signature'], chwooOrderSignature($chwooBagItems, $details))) {
         throw new RuntimeException('Your checkout has changed. Please review it again before payment.');
@@ -89,24 +97,27 @@ try {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Demonstration Payment | CHWOO</title>
-<link rel="stylesheet" href="../css/base.css"><link rel="stylesheet" href="../css/header.css"><link rel="stylesheet" href="../css/footer.css"><link rel="stylesheet" href="../css/bag.css"><link rel="stylesheet" href="../css/checkout.css"></head>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Payment | CHWOO</title>
+<link rel="stylesheet" href="../css/base.css"><link rel="stylesheet" href="../css/header.css"><link rel="stylesheet" href="../css/footer.css"><link rel="stylesheet" href="../css/bag.css"><link rel="stylesheet" href="../css/checkout.css">
+<script src="../js/checkout-history.js" defer></script></head>
 <body class="checkout-page">
 <?php include __DIR__ . '/header.php'; ?>
 <main class="checkout-main">
     <a class="checkout-back" href="checkout.php?step=review">&larr; Return to order review</a>
-    <div class="checkout-heading"><p class="checkout-eyebrow">CHWOO DEMONSTRATION</p><h1>One last step.</h1><p>Simulate a payment outcome for your reviewed order.</p></div>
-    <ol class="checkout-progress" aria-label="Checkout progress"><li><span>01</span> Delivery details</li><li><a href="checkout.php?step=review"><span>02</span> Order review</a></li><li aria-current="step"><span>03</span> Simulated payment</li></ol>
+    <div class="checkout-heading"><p class="checkout-eyebrow">YOUR CHWOO CHECKOUT</p><h1>Payment</h1><p>Complete your order.</p></div>
+    <ol class="checkout-progress" aria-label="Checkout progress"><li><span>01</span> Delivery details</li><li><a href="checkout.php?step=review"><span>02</span> Order review</a></li><li aria-current="step"><span>03</span> Payment</li></ol>
     <?php if (!empty($_SESSION['chwoo_payment_error'])): ?><p class="checkout-alert" role="alert"><?= chwooEscape($_SESSION['chwoo_payment_error']) ?></p><?php endif; ?>
-    <div class="checkout-layout"><section class="checkout-payment" aria-labelledby="payment-title"><h2 id="payment-title">Demonstration payment</h2>
-        <p>No real payment is taken. This step does not ask for card details or banking credentials.</p>
-        <p>A successful simulation records your order and deducts the purchased stock. A failed simulation keeps your bag so you can try again.</p>
+    <div class="checkout-layout"><section class="checkout-payment" aria-labelledby="payment-title"><h2 id="payment-title">Ready when you are.</h2><p>Review your order total, then proceed to complete your purchase.</p>
         <form method="post" action="payment.php">
             <input type="hidden" name="form_token" value="<?= chwooEscape($_SESSION['chwoo_form_token']) ?>">
             <input type="hidden" name="checkout_token" value="<?= chwooEscape($purchase['token']) ?>">
-            <div class="checkout-payment-actions"><button type="submit" name="action" value="success" class="checkout-button">Simulate Successful Payment</button><button type="submit" name="action" value="failure" class="checkout-button checkout-button-secondary">Simulate Failed Payment</button></div>
-        </form><a href="checkout.php?step=review">Edit / review this order</a>
-    </section><aside class="checkout-summary"><p class="checkout-eyebrow">YOUR REVIEWED ORDER</p><h2><?= $chwooBagCount ?> <?= $chwooBagCount === 1 ? 'piece' : 'pieces' ?>, just for you.</h2>
+            <div class="checkout-payment-actions"><button type="submit" name="action" value="success" class="checkout-button">Proceed to Payment</button><a class="checkout-button checkout-button-secondary" href="checkout.php?step=review">Return to order review</a></div>
+        </form>
+    </section><aside class="checkout-summary"><p class="checkout-eyebrow">YOUR ORDER</p><h2>Order summary</h2>
+        <div class="checkout-mini-products"><?php foreach ($chwooBagItems as $item): ?><div class="checkout-mini-product">
+            <?php if ($item['image_url']): ?><img src="<?= chwooEscape($item['image_url']) ?>" alt="<?= chwooEscape($item['name']) ?>"><?php else: ?><span class="checkout-photo-placeholder">Photo unavailable</span><?php endif; ?>
+            <div><h3><?= chwooEscape($item['name']) ?></h3><p><?= chwooEscape($item['colour'] . ' / ' . $item['size']) ?></p><p>Quantity: <?= $item['quantity'] ?></p></div><strong>SGD $<?= number_format($item['subtotal'],2) ?></strong>
+        </div><?php endforeach; ?></div>
         <dl class="checkout-totals"><div><dt>Subtotal</dt><dd>SGD $<?= number_format($chwooBagTotal, 2) ?></dd></div><div><dt>Delivery</dt><dd><?= $chwooDelivery ? 'SGD $' . number_format($chwooDelivery, 2) : 'Complimentary' ?></dd></div><div class="checkout-grand-total"><dt>Total</dt><dd>SGD $<?= number_format($chwooEstimatedTotal, 2) ?></dd></div></dl>
         <p class="checkout-help">Prices and stock are checked again when you submit. If anything changes, you will return to review.</p></aside></div>
 </main>

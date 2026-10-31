@@ -4,7 +4,7 @@ require_once __DIR__ . '/orders.php';
 function chwooAcknowledgementText($order) {
     $lines = ['CHWOO order acknowledgement', 'Order #' . $order['order_id'],
         'Hello ' . $order['recipient_name'] . ',', '',
-        'Your order was recorded and confirmed using simulated payment. No real payment was taken.', ''];
+        'Thank you for shopping with CHWOO! Your order has been confirmed. Below is a summary of your purchase.', ''];
     foreach ($order['items'] as $item) {
         $lineCents = chwooPriceCents($item['unit_price']) * (int)$item['quantity'];
         $lines[] = $item['product_name'] . ' / ' . $item['selected_colour'] . ' / size ' . $item['selected_size']
