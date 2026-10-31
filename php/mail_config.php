@@ -1,9 +1,10 @@
 <?php
-// App-local demo settings only. Delivery stays disabled until the student's
-// authorised mailbox exists on the local mail server. Never use checkout email.
+// Safe shared defaults. Put authorised machine-local settings in the gitignored
+// mail_config.local.php instead. See README.md for the Mercury setup.
 return [
     'enabled' => false,
-    'delivery_verified' => false, // Set only after authorised local inbox delivery is verified.
-    'recipient' => '', // e.g. the authorised student's local-account@localhost
-    'sender' => '',    // an account permitted by that same local mail server
+    'delivery_verified' => false, // Local verification metadata, not a delivery guarantee.
+    'recipient' => '', // Fixed authorised mailbox only; never the checkout email.
+    'sender' => '',
+    'site_url' => 'http://localhost:8000/chwoo',
 ];

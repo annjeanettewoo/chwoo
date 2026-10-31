@@ -1,6 +1,8 @@
 <?php
 // CLI-only integration suite. Creates/drops only its randomly named test database.
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
+// Keep test sessions in writable temporary storage, including child processes.
+session_save_path(sys_get_temp_dir());
 require_once __DIR__ . '/../php/order_mail.php';
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $conn = new mysqli('127.0.0.1', 'root', '');
@@ -20,7 +22,7 @@ function check($condition, $label) {
 function liveSnapshot() {
     global $conn;
     $data = [];
-    foreach (['products', 'product_colours', 'product_variants', 'customers', 'orders', 'order_items', 'wishlist'] as $table) {
+    foreach (['products', 'product_colours', 'product_variants', 'customers', 'orders', 'order_items', 'wishlist', 'customer_addresses'] as $table) {
         $data[$table] = $conn->query('SELECT * FROM chwoo_db.' . $table . ' ORDER BY 1')->fetch_all(MYSQLI_ASSOC);
     }
     return hash('sha256', serialize($data));
@@ -95,7 +97,8 @@ function fixturePurchase($customerId, $quantities) {
     return $token;
 }
 function startWorker($session) {
-    $process = proc_open([PHP_BINARY, __DIR__ . '/order_worker.php'], [['pipe','r'], ['pipe','w'], ['pipe','w']], $pipes, dirname(__DIR__), null, ['bypass_shell' => true]);
+    $process = proc_open([PHP_BINARY, '-d', 'disable_functions=mail', '-d', 'session.save_path=' . session_save_path(),
+        __DIR__ . '/order_worker.php'], [['pipe','r'], ['pipe','w'], ['pipe','w']], $pipes, dirname(__DIR__), null, ['bypass_shell' => true]);
     if (!is_resource($process)) { throw new RuntimeException('Cannot start concurrent worker'); }
     fwrite($pipes[0], json_encode($session)); fclose($pipes[0]);
     return [$process, $pipes];
@@ -123,7 +126,8 @@ try {
     $address = stream_socket_get_name($socket, false); fclose($socket);
     $port = (int)substr(strrchr($address, ':'), 1);
     $base = 'http://127.0.0.1:' . $port . '/chwoo';
-    $server = proc_open([PHP_BINARY, '-S', '127.0.0.1:' . $port, '-t', dirname(__DIR__, 2)],
+    $server = proc_open([PHP_BINARY, '-d', 'disable_functions=mail', '-d', 'session.save_path=' . session_save_path(),
+        '-S', '127.0.0.1:' . $port, '-t', dirname(__DIR__, 2)],
         [['pipe','r'], ['file',$log,'a'], ['file',$log,'a']], $serverPipes, dirname(__DIR__), null, ['bypass_shell' => true]);
     if (!is_resource($server)) { throw new RuntimeException('Cannot start isolated test server'); }
     fclose($serverPipes[0]);
@@ -134,7 +138,8 @@ try {
         usleep(100000);
     }
     check($ready, 'Isolated local PHP server is ready');
-    $regression = proc_open([PHP_BINARY, __DIR__ . '/task05.php', $base], [['pipe','r'], ['pipe','w'], ['pipe','w']], $pipes, dirname(__DIR__), null, ['bypass_shell' => true]);
+    $regression = proc_open([PHP_BINARY, '-d', 'disable_functions=mail', '-d', 'session.save_path=' . session_save_path(),
+        __DIR__ . '/task05.php', $base], [['pipe','r'], ['pipe','w'], ['pipe','w']], $pipes, dirname(__DIR__), null, ['bypass_shell' => true]);
     fclose($pipes[0]); $regressionOutput = stream_get_contents($pipes[1]); $regressionErrors = stream_get_contents($pipes[2]);
     fclose($pipes[1]); fclose($pipes[2]); $exit = proc_close($regression);
     check($exit === 0 && str_contains($regressionOutput, '55 checks passed.'), 'Task 05 regression: 55 checks passed against the new schema (' . trim($regressionErrors) . ')');
@@ -199,8 +204,10 @@ try {
     $confirmation = request($alice, 'php/order_confirmation.php?id=' . $orderId);
     check($confirmation['status'] === 200 && str_contains($confirmation['html'], 'Your pieces are confirmed.')
         && str_contains($confirmation['html'], 'Singapore 012345') && str_contains($confirmation['html'], 'Demo only &lt;test&gt;'), 'Confirmation displays saved delivery details with escaping');
-    check(str_contains($confirmation['html'], 'prepared for testing. It has not been sent.') && $order['acknowledgement_status'] === 'Prepared'
-        && $order['acknowledgement_sent_at'] === null, 'Default acknowledgement is accurately labelled prepared, never delivered');
+    check(!str_contains($confirmation['html'], 'mail-title') && !str_contains($confirmation['html'], 'View acknowledgement email text')
+        && !str_contains($confirmation['html'], 'fictional+receipt@example.com has received')
+        && $order['acknowledgement_status'] === 'Prepared' && $order['acknowledgement_sent_at'] === null,
+        'Prepared acknowledgement remains internal; confirmation has no technical email preview or delivery claim');
     $oldPayment = request($alice, 'php/payment.php');
     check($oldPayment['status'] === 303 && ($oldPayment['headers']['location'] ?? '') === 'checkout.php',
         'Old payment GET returns to empty checkout without generating a review warning');
@@ -240,6 +247,12 @@ try {
     $page = request($alice, 'php/order_confirmation.php?id=' . $orderId);
     check(str_contains($page['html'], 'Cloud Check Top') && str_contains($page['html'], 'Midnight Navy') && str_contains($page['html'], 'Unit price: SGD $42.00')
         && str_contains($page['html'], 'images/newin1.jpg'), 'Confirmation retains purchased names, colours, images and prices after catalogue edits');
+    $snapshot = chwooSavedOrder($conn, $orderId, $customerIds['alice']);
+    $snapshotHtml = chwooAcknowledgementHtml($snapshot);
+    check(str_contains($snapshotHtml, 'Cloud Check Top') && str_contains($snapshotHtml, 'Midnight Navy')
+        && str_contains($snapshotHtml, 'SGD&nbsp;$42.00') && !str_contains($snapshotHtml, 'Changed product')
+        && str_contains(chwooAcknowledgementText($snapshot), '2 x SGD $42.00 = SGD $84.00'),
+        'Both email alternatives retain saved purchase snapshots after catalogue edits');
     $conn->query("UPDATE product_colours SET price=42,colour_name='Midnight Navy',image_path='images/newin1.jpg' WHERE colour_id=1");
     $conn->query("UPDATE products SET product_name='Cloud Check Top' WHERE product_id=1");
     $conn->query('UPDATE product_variants SET stock_quantity=1 WHERE variant_id=2');
@@ -309,8 +322,50 @@ try {
         'Simulated mail transport failure does not change committed orders');
     check(chwooLocalAcknowledgement('test', $message, $localConfig, function(){return true;}) === 'Accepted',
         'A mocked local acceptance is classified Accepted, never Delivered (no actual mail sent)');
-    $conn->query("UPDATE orders SET acknowledgement_status='Failed' WHERE order_id=$orderId");
-    check(str_contains(request($alice, 'php/order_confirmation.php?id=' . $orderId)['html'], 'Your confirmed order is unchanged.'), 'Saved email failure displays accurately on the still-confirmed purchase');
+    // Only injected callables can run in this block; HTTP server has mail() disabled as well.
+    putenv('CHWOO_MAIL_PREPARE_ONLY=0');
+    try {
+        $captured = [];
+        $accept = function ($to, $subject, $body, $headers) use (&$captured) {
+            $captured[] = compact('to', 'subject', 'body', 'headers'); return true;
+        };
+        chwooAcknowledgeOrder($conn, $orderId, $customerIds['bob'], $localConfig, $accept);
+        check(count($captured) === 0, 'Acknowledgement lookup enforces customer ownership before transport');
+        chwooAcknowledgeOrder($conn, $orderId, $customerIds['alice'], $localConfig, $accept);
+        $acceptedOrder = chwooSavedOrder($conn, $orderId, $customerIds['alice']);
+        check(count($captured) === 1 && $captured[0]['to'] === 'test-student@localhost'
+            && $captured[0]['to'] !== $order['contact_email']
+            && str_contains($captured[0]['headers'], 'multipart/alternative')
+            && $acceptedOrder['acknowledgement_status'] === 'Accepted' && $acceptedOrder['acknowledgement_sent_at'] !== null,
+            'Saved-order acknowledgement sends multipart email only to the configured local mailbox via mock transport');
+        chwooAcknowledgeOrder($conn, $orderId, $customerIds['alice'], $localConfig, $accept);
+        pay($alice, $csrf, $token, 'success');
+        $acceptedPage = request($alice, 'php/order_confirmation.php?id=' . $orderId);
+        check(count($captured) === 1 && chwooSavedOrder($conn, $orderId, $customerIds['alice']) === $acceptedOrder
+            && !str_contains($acceptedPage['html'], 'mail-title'),
+            'Repeated acknowledgement, successful-payment replay and confirmation refresh preserve one acceptance without resending');
+        $failedMailId = chwooOrderForToken($conn, $duplicateToken, $customerIds['alice']);
+        $beforeFailure = chwooSavedOrder($conn, $failedMailId, $customerIds['alice']);
+        $stockBeforeMail = stock(3); $ordersBeforeMail = countRows('orders');
+        foreach (['Pending', 'Failed'] as $paymentStatus) {
+            $conn->query("UPDATE orders SET payment_status='$paymentStatus' WHERE order_id=$failedMailId");
+            chwooAcknowledgeOrder($conn, $failedMailId, $customerIds['alice'], $localConfig, $accept);
+        }
+        check(count($captured) === 1, 'Pending and unsuccessful payment states never invoke acknowledgement transport');
+        $conn->query("UPDATE orders SET payment_status='Paid' WHERE order_id=$failedMailId");
+        $failureCalls = 0;
+        chwooAcknowledgeOrder($conn, $failedMailId, $customerIds['alice'], $localConfig,
+            function () use (&$failureCalls) { $failureCalls++; throw new RuntimeException('Mock transport failure'); });
+        $afterFailure = chwooSavedOrder($conn, $failedMailId, $customerIds['alice']);
+        $failedPage = request($alice, 'php/order_confirmation.php?id=' . $failedMailId);
+        check($failureCalls === 1 && $afterFailure['acknowledgement_status'] === 'Failed' && $afterFailure['acknowledgement_sent_at'] === null
+            && $afterFailure['items'] === $beforeFailure['items'] && $afterFailure['total_amount'] === $beforeFailure['total_amount']
+            && countRows('orders') === $ordersBeforeMail && stock(3) === $stockBeforeMail
+            && str_contains($failedPage['html'], 'Your pieces are confirmed.') && !str_contains($failedPage['html'], 'mail-title'),
+            'Mock transport exception leaves the committed order, items, totals, stock and normal confirmation intact');
+        chwooAcknowledgeOrder($conn, $failedMailId, $customerIds['alice'], $localConfig, $accept);
+        check(count($captured) === 1, 'Failed acknowledgement is not automatically retried');
+    } finally { putenv('CHWOO_MAIL_PREPARE_ONLY=1'); }
     $schemaToken = $conn->query("SHOW INDEX FROM orders WHERE Key_name='uq_orders_checkout_token'")->fetch_assoc();
     check($schemaToken && (int)$schemaToken['Non_unique'] === 0, 'Database schema enforces checkout-token uniqueness');
     request($alice, 'php/wishlist_action.php', ['form_token'=>$csrf,'product_id'=>7,'action'=>'save']);

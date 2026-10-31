@@ -8,3 +8,6 @@ Thumbs.db
 
 # Task report
 TASK*_REPORT.md
+
+# Developer-authorised local mail settings
+/php/mail_config.local.php
