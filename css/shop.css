@@ -25,13 +25,8 @@
     font-size: 13px; font-weight: 700; text-decoration: none; letter-spacing: .1px;
     white-space: nowrap; color: #4B2E1F;
 }
-.shop-page .main-nav a { position: relative; }
-.shop-page .main-nav a::after { bottom: -7px; }
-.shop-page .main-nav a[aria-current="page"]::after { width: 100%; }
 .shop-page .nav-tools { margin-left: auto; display: flex; align-items: center; gap: 24px; }
 .shop-page .navbar .nav-tools a.chwoo-account-link { display: block; }
-.shop-page .chwoo-auth-notice { position: fixed; z-index: 1100; bottom: 20px; left: 20px; right: 20px; width: fit-content; max-width: calc(100% - 40px); margin: 0 auto; padding: 14px 20px; text-align: center; background: #e5eef4; font-size: 14px; }
-.shop-page .main-nav a:hover, .shop-page .nav-tools a:hover { opacity: .7; }
 
 .shop-page .shop-main { width: 90%; max-width: 1860px; margin: 0 auto; }
 .shop-page .breadcrumb { margin: 25px 0 43px; font-size: 12px; }

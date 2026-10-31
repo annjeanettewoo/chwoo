@@ -61,6 +61,7 @@ function shopUrl($category, $sort) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shop | CHWOO Fashion Studio</title>
     <!-- Shared CHWOO styling, followed by Shop-specific styling. -->
+    <link rel="stylesheet" href="../css/header.css">
     <link rel="stylesheet" href="../css/shop.css">
     <link rel="stylesheet" href="../css/footer.css">
     <link rel="stylesheet" href="<?= chwooEscape($chwooRootUrl) ?>css/bag.css">

@@ -13,11 +13,15 @@ $variantId = is_string($rawVariantId) && preg_match('/^[1-9][0-9]*$/D', $rawVari
     ? filter_var($rawVariantId, FILTER_VALIDATE_INT) : false;
 $action = $_POST['action'] ?? '';
 $context = $_POST['bag_context'] ?? 'full';
-$returnTo = $context === 'drawer'
-    ? chwooReturnTo($_POST['return_to'] ?? 'php/cart.php') : 'php/cart.php';
+$returnTo = chwooReturnTo($_POST['return_to'] ?? 'php/cart.php');
+if ($context === 'checkout') { $returnTo = 'php/checkout.php?step=review'; }
+if ($context === 'full' && !in_array($returnTo, ['php/cart.php', 'php/cart.php?from=checkout'], true)) {
+    $returnTo = 'php/cart.php';
+}
+$message = '';
 if (!is_string($token) || !hash_equals($_SESSION['chwoo_form_token'], $token)) {
     $message = 'Please refresh the page and try again.';
-} elseif (!in_array($context, ['full', 'drawer'], true)) {
+} elseif (!in_array($context, ['full', 'drawer', 'checkout'], true)) {
     $message = 'Invalid bag action context.';
 } elseif (!$variantId || !isset($_SESSION['chwoo_cart'][$variantId])) {
     $message = 'That variant is no longer in your bag.';
@@ -25,10 +29,8 @@ if (!is_string($token) || !hash_equals($_SESSION['chwoo_form_token'], $token)) {
     $message = 'Invalid bag action.';
 } elseif ($action === 'remove' || ($action === 'decrease' && $_SESSION['chwoo_cart'][$variantId]['quantity'] === 1)) {
     unset($_SESSION['chwoo_cart'][$variantId]);
-    $message = 'Item removed from your bag.';
 } elseif ($action === 'decrease') {
     $_SESSION['chwoo_cart'][$variantId]['quantity']--;
-    $message = 'Bag quantity updated.';
 } else {
     // Recheck this exact variant immediately before increasing its session quantity.
     $stmt = $conn->prepare('SELECT v.stock_quantity FROM product_variants AS v
@@ -43,10 +45,10 @@ if (!is_string($token) || !hash_equals($_SESSION['chwoo_form_token'], $token)) {
         $message = 'No more stock is available for this colour and size.';
     } else {
         $_SESSION['chwoo_cart'][$variantId]['quantity']++;
-        $message = 'Bag quantity updated.';
     }
 }
-$_SESSION['chwoo_bag_flash'] = $message;
+$message = trim($message . ' ' . $chwooBagMessage);
+if ($message !== '') { $_SESSION['chwoo_bag_flash'] = $message; }
 $location = $chwooRootUrl . $returnTo;
 if ($context === 'drawer') {
     $location .= (str_contains($returnTo, '?') ? '&' : '?') . 'bag=updated';

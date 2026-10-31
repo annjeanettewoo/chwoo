@@ -9,7 +9,7 @@
 .account-nav a[aria-current="page"] { background: var(--blue); }
 .account-nav a:hover { background: #e7edf0; }
 .account-logout { margin-top: 70px; border-top: 1px solid #ded6c9; padding-top: 22px; }
-.account-logout button { display: flex; justify-content: space-between; width: 100%; min-height: 44px; border: 0; background: none; color: var(--brown); padding: 10px 14px; font: 13px Arial, sans-serif; cursor: pointer; }
+.account-logout button { display: flex; align-items: center; justify-content: flex-start; width: 100%; min-height: 45px; border: 0; background: none; color: var(--brown); padding: 10px 14px; font: 13px/1.6 Arial, sans-serif; text-align: left; cursor: pointer; }
 .account-logout button:hover { background: var(--yellow); }
 .account-content { min-width: 0; }
 .account-heading { margin-bottom: 36px; }

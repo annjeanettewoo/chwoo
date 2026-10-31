@@ -92,9 +92,9 @@
 }
 
 
-/* Underline */
-
-.main-nav a::after {
+/* One underline treatment for shared navigation on every page. */
+.main-nav a::after,
+.nav-tools a::after {
     content: "";
 
     position: absolute;
@@ -103,16 +103,20 @@
     bottom: -6px;
 
     width: 0;
-    height: 2px;
+    height: 1px;
 
-    background-color: var(--brown);
+    background-color: var(--brown, #4B2E1F);
 
     transition: width 0.3s;
 }
 
 
 .main-nav a:hover::after,
-.main-nav a.active::after {
+.nav-tools a:hover::after,
+.main-nav a:focus-visible::after,
+.nav-tools a:focus-visible::after,
+.main-nav a[aria-current="page"]::after,
+.nav-tools a[aria-current="page"]::after {
     width: 100%;
 }
 
@@ -134,13 +138,15 @@
 }
 
 
-.nav-tools a:hover {
-    opacity: 0.6;
+.navbar .main-nav a:focus-visible,
+.navbar .nav-tools a:focus-visible,
+.navbar .logo-link:focus-visible {
+    outline: 2px solid #4B2E1F;
+    outline-offset: 5px;
 }
 
 /* Account access remains available when secondary tools collapse on mobile. */
 .navbar .nav-tools a.chwoo-account-link { display: block; white-space: nowrap; }
-.main-nav a[aria-current="page"]::after { width: 100%; }
 .chwoo-auth-notice { position: fixed; z-index: 1100; bottom: 20px; left: 20px; right: 20px; width: fit-content; max-width: calc(100% - 40px); margin: 0 auto; padding: 14px 20px; text-align: center; background: #e5eef4; color: #4B2E1F; font-size: 14px; }
 
 
