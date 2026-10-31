@@ -23,7 +23,7 @@ function chwooAuthRootUrl() {
 // Shared allowlist for ordinary form redirects; paths are relative to CHWOO.
 function chwooReturnTo($value, $fallback = 'php/cart.php') {
     $allowed = ['index.php', 'php/shop.php', 'php/newin.php', 'php/product.php',
-                'php/cart.php', 'php/collections.php', 'php/account.php'];
+                'php/cart.php', 'php/collections.php', 'php/account.php', 'php/checkout.php'];
     if (!is_string($value) || strlen($value) > 1000) { return $fallback; }
     $parts = parse_url($value);
     if ($parts === false || isset($parts['scheme']) || isset($parts['host'])
@@ -36,6 +36,12 @@ function chwooReturnTo($value, $fallback = 'php/cart.php') {
         if (isset($query[$key]) && is_string($query[$key]) && strlen($query[$key]) <= 80) {
             $safeQuery[$key] = $query[$key];
         }
+    }
+    if (($parts['path'] ?? '') === 'php/checkout.php' && in_array($query['step'] ?? '', ['details', 'review'], true)) {
+        $safeQuery['step'] = $query['step'];
+    }
+    if (($parts['path'] ?? '') === 'php/cart.php' && ($query['from'] ?? '') === 'checkout') {
+        $safeQuery['from'] = 'checkout';
     }
     return $parts['path'] . ($safeQuery ? '?' . http_build_query($safeQuery) : '');
 }
@@ -69,6 +75,8 @@ function chwooAuthHome($message) {
 function chwooAuthAccount($message) {
     unset($_SESSION['chwoo_auth_feedback']);
     $_SESSION['chwoo_auth_notice'] = $message;
-    header('Location: ' . chwooAuthRootUrl() . 'php/account.php', true, 303);
+    $destination = !empty($_SESSION['chwoo_checkout_login']) ? 'php/checkout.php' : 'php/account.php';
+    unset($_SESSION['chwoo_checkout_login']);
+    header('Location: ' . chwooAuthRootUrl() . $destination, true, 303);
     exit;
 }

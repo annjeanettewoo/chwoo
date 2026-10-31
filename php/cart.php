@@ -9,7 +9,9 @@ function e($value) {
 $bagItems = $chwooBagItems;
 $bagCount = $chwooBagCount;
 $bagTotal = $chwooBagTotal;
-$drawerOpen = ($_GET['bag'] ?? '') === 'open';
+$fromCheckout = ($_GET['from'] ?? '') === 'checkout';
+$bagReturnTo = 'php/cart.php' . ($fromCheckout ? '?from=checkout' : '');
+$drawerOpen = in_array($_GET['bag'] ?? '', ['open', 'updated'], true);
 $bagNotice = $drawerOpen ? '' : $chwooBagMessage;
 // Show a flash in the active view only, rather than announcing it twice.
 if (!$drawerOpen) { $chwooBagMessage = ''; }
@@ -20,6 +22,7 @@ if (!$drawerOpen) { $chwooBagMessage = ''; }
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Bag | CHWOO Fashion Studio</title>
+    <link rel="stylesheet" href="../css/header.css">
     <link rel="stylesheet" href="../css/shop.css">
     <link rel="stylesheet" href="../css/cart.css">
     <link rel="stylesheet" href="../css/footer.css">
@@ -58,7 +61,7 @@ if (!$drawerOpen) { $chwooBagMessage = ''; }
                             <p>Unit price: SGD $<?= number_format($item['price'], 2) ?></p>
                             <p>Subtotal: SGD $<?= number_format($item['subtotal'], 2) ?></p>
                             <?php if ($item['availability']): ?><p role="alert"><?= e($item['availability']) ?></p><?php endif; ?>
-                            <?php chwooBagControls($item, 'php/cart.php', 'full'); ?>
+                            <?php chwooBagControls($item, $bagReturnTo, 'full'); ?>
                         </div>
                     </article>
                 <?php endforeach; ?>
@@ -69,7 +72,7 @@ if (!$drawerOpen) { $chwooBagMessage = ''; }
                 <div class="bag-total"><span>Delivery</span><span><?= !$bagCount ? 'SGD $0.00' : ($chwooDelivery > 0 ? 'SGD $' . number_format($chwooDelivery, 2) : 'Complimentary') ?></span></div>
                 <div class="bag-total bag-estimated-total"><span>Estimated total</span><strong>SGD $<?= number_format($chwooEstimatedTotal, 2) ?></strong></div>
                 <p class="bag-delivery-note">Demonstration delivery: SGD $5 below SGD $80; complimentary from SGD $80.</p>
-                <a href="<?= e($chwooCheckoutUrl) ?>" class="chwoo-bag-primary">CHECKOUT</a>
+                <a href="<?= e($chwooCheckoutUrl . ($fromCheckout ? '?step=review' : '')) ?>" class="chwoo-bag-primary"><?= $fromCheckout ? 'RETURN TO ORDER REVIEW' : 'CHECKOUT' ?></a>
                 <a href="shop.php" class="bag-shop-link">CONTINUE SHOPPING &rarr;</a>
             </aside>
         </div>

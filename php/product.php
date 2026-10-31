@@ -144,6 +144,7 @@ if ($product && $selectedColour) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $product ? e($product['product_name']) . ' | CHWOO' : 'Product not found | CHWOO' ?></title>
     <!-- Keep the working shared Shop stylesheet: no edits needed. -->
+    <link rel="stylesheet" href="../css/header.css">
     <link rel="stylesheet" href="../css/shop.css">
     <link rel="stylesheet" href="../css/product.css?v=3">
     <link rel="stylesheet" href="../css/wishlist.css">
@@ -195,7 +196,7 @@ if ($product && $selectedColour) {
                         <div class="product-message" role="status"><?= e($bagNotice) ?></div>
                     <?php endif; ?>
                     <?php if ($success): ?>
-                        <div class="product-message success" role="status">
+                        <div class="product-message success" role="status" data-auto-dismiss>
                             <?= e($success) ?> <a href="cart.php">View bag &rarr;</a>
                         </div>
                     <?php endif; ?>

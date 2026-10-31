@@ -104,9 +104,9 @@ $firstName = explode(' ', $customer['full_name'])[0];
             <?php if (!$orders): ?>
             <div class="account-empty"><span class="account-empty-mark" aria-hidden="true">&#10033;</span><h3>You haven't placed any orders yet.</h3><p>Every favourite starts with a little browse.</p><a class="account-text-link" href="shop.php">Find something you love &rarr;</a></div>
             <?php else: ?>
-            <div class="account-orders"><table><caption class="account-sr-only">Your <?= $section === 'dashboard' ? 'five most recent orders' : 'order history' ?></caption><thead><tr><th scope="col">Order</th><th scope="col">Date</th><th scope="col">Total</th><th scope="col">Status</th></tr></thead><tbody>
+            <div class="account-orders"><table><caption class="account-sr-only">Your <?= $section === 'dashboard' ? 'five most recent orders' : 'order history' ?></caption><thead><tr><th scope="col">Order</th><th scope="col">Date</th><th scope="col">Total</th><th scope="col">Status</th><th scope="col">Details</th></tr></thead><tbody>
                 <?php foreach ($orders as $order): ?>
-                <tr><td>#<?= (int)$order['order_id'] ?></td><td><?= chwooAuthEscape(date('j M Y', strtotime($order['ordered_at']))) ?></td><td>SGD $<?= number_format((float)$order['total_amount'], 2) ?></td><td><span class="account-order-status"><?= chwooAuthEscape($order['order_status']) ?></span></td></tr>
+                <tr><td>#<?= (int)$order['order_id'] ?></td><td><?= chwooAuthEscape(date('j M Y', strtotime($order['ordered_at']))) ?></td><td>SGD $<?= number_format((float)$order['total_amount'], 2) ?></td><td><span class="account-order-status"><?= chwooAuthEscape($order['order_status']) ?></span></td><td><a class="account-text-link" href="order_confirmation.php?id=<?= (int)$order['order_id'] ?>" aria-label="View details of order <?= (int)$order['order_id'] ?>">View details</a></td></tr>
                 <?php endforeach; ?>
             </tbody></table></div>
             <?php endif; ?>

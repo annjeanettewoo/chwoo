@@ -6,10 +6,13 @@ if (chwooCurrentCustomer()) {
         require_once __DIR__ . '/db.php';
         chwooWishlistAfterAuthentication($conn);
     }
-    header('Location: ' . chwooAuthRootUrl() . 'php/account.php', true, 303);
-    exit;
+    chwooAuthAccount('You are already logged in.');
 }
 require_once __DIR__ . '/bag.php';
+// Keep bag availability warnings until a checkout-initiated sign-in resumes.
+if (!empty($_SESSION['chwoo_checkout_login']) && $chwooBagMessage !== '') {
+    $_SESSION['chwoo_bag_flash'] = $chwooBagMessage;
+}
 header('Cache-Control: no-store');
 $feedback = $_SESSION['chwoo_auth_feedback'] ?? [];
 unset($_SESSION['chwoo_auth_feedback']);
@@ -61,6 +64,7 @@ function chwooAuthField($name, $label, $type, $autocomplete, $attributes = '') {
         <?php endif; ?>
 
             <p class="auth-intro"><?= $register ? 'A little more CHWOO, just for you.' : 'Welcome back. It’s lovely to see you.' ?></p>
+            <?php if (!empty($_SESSION['chwoo_checkout_login'])): ?><p class="auth-intro">Sign in or create an account to continue to checkout. Your bag is saved.</p><?php endif; ?>
             <form method="post" action="auth_action.php" data-auth-form="<?= $register ? 'register' : 'login' ?>">
                 <input type="hidden" name="form_token" value="<?= $token ?>">
                 <input type="hidden" name="action" value="<?= $register ? 'register' : 'login' ?>">

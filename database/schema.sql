@@ -95,6 +95,8 @@ CREATE TABLE wishlist (
 -- Payment is simulated; do not store card data. Currency is SGD throughout.
 CREATE TABLE orders (
     order_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    -- Unique, server-generated token makes committed checkout retries idempotent.
+    checkout_token CHAR(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
     customer_id INT UNSIGNED NOT NULL,
     recipient_name VARCHAR(120) NOT NULL,
     contact_phone VARCHAR(30) NOT NULL,
@@ -107,8 +109,11 @@ CREATE TABLE orders (
     order_status ENUM('Pending', 'Confirmed', 'Cancelled') NOT NULL DEFAULT 'Pending',
     ordered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    -- Accepted records local transport acceptance, never verified mailbox delivery.
     acknowledgement_sent_at DATETIME DEFAULT NULL,
+    acknowledgement_status ENUM('Prepared', 'Accepted', 'Failed') NOT NULL DEFAULT 'Prepared',
     PRIMARY KEY (order_id),
+    UNIQUE KEY uq_orders_checkout_token (checkout_token),
     KEY idx_orders_customer (customer_id),
     CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id)
         REFERENCES customers (customer_id),
@@ -125,6 +130,7 @@ CREATE TABLE order_items (
     order_id INT UNSIGNED NOT NULL,
     variant_id INT UNSIGNED NOT NULL,
     product_name VARCHAR(120) NOT NULL,
+    product_image_path VARCHAR(255) NOT NULL DEFAULT '',
     selected_size VARCHAR(10) NOT NULL,
     selected_colour VARCHAR(50) NOT NULL DEFAULT '',
     quantity INT UNSIGNED NOT NULL,
