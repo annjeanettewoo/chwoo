@@ -1,5 +1,5 @@
 <?php
-// Task 05: prepare and review a bag. No order or inventory writes happen here.
+// Prepare and review a bag; optional address saving is the only database write here.
 require_once __DIR__ . '/bag.php';
 require_once __DIR__ . '/checkout_helpers.php';
 require_once __DIR__ . '/orders.php';

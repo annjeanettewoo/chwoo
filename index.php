@@ -9,13 +9,13 @@ function e($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
-// Keep the original homepage selection and order: products 1-4.
+// Preview the latest four active products, using the same order as New In.
 // The full active catalogue remains available in php/shop.php.
 $sql = 'SELECT p.product_id, p.product_name, c.price, c.image_path
         FROM products AS p
         JOIN product_colours AS c ON c.product_id = p.product_id AND c.is_default = 1
         WHERE p.is_active = 1
-        ORDER BY p.product_id ASC
+        ORDER BY p.product_id DESC
         LIMIT 4';
 
 $stmt = $conn->prepare($sql);
@@ -80,7 +80,7 @@ $bagCount = $chwooBagCount;
                 Playful pieces made for everyday moments.
             </p>
 
-            <a href="php/shop.php" class="shop-button">
+            <a href="php/newin.php" class="shop-button">
                 SHOP NEW IN
             </a>
         </div>
@@ -141,7 +141,7 @@ $bagCount = $chwooBagCount;
 
             </div>
 
-            <a href="php/shop.php" class="view-all">
+            <a href="php/newin.php" class="view-all">
                 VIEW ALL NEW ARRIVALS →
             </a>
         </section>

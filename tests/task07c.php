@@ -110,6 +110,7 @@ try {
         usleep(100000);
     }
     check($ready, 'Isolated HTTP server ready with mail disabled');
+    require __DIR__ . '/task09a.php';
     $customer = browser();
     check(request($customer, 'php/outfit_action.php')['status'] === 405, 'Action accepts only POST');
     check(request($customer, 'php/outfit.php', [])['status'] === 405, 'Board rejects direct POST');

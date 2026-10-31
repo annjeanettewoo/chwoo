@@ -72,6 +72,7 @@ $firstName = explode(' ', $customer['full_name'])[0];
         <p class="account-sidebar-title">A little space<br>just for you.</p>
         <nav class="account-nav" aria-label="Account navigation">
             <?php foreach ($sections as $key => $label): ?>
+            <?php if ($key === 'cards') { continue; } // No card-storage feature is offered. ?>
             <a href="account.php?section=<?= $key ?>" <?= $section === $key ? 'aria-current="page"' : '' ?>><?= $label ?></a>
             <?php endforeach; ?>
         </nav>

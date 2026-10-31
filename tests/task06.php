@@ -170,7 +170,8 @@ try {
     $page = request($alice, 'php/payment.php');
     check(str_contains($page['headers']['cache-control'] ?? '', 'no-store')
         && str_contains($page['html'], '../js/checkout-history.js'), 'Payment forbids HTTP caching and rechecks restored browser history pages');
-    check(str_contains($page['html'], 'Proceed to Payment') && str_contains($page['html'], 'Return to order review')
+    check(str_contains($page['html'], 'CONFIRM ORDER')
+        && str_contains($page['html'], 'Demo checkout: payment is simulated and no real charge will be made.') && str_contains($page['html'], 'Return to order review')
         && !str_contains($page['html'], 'Simulate') && !preg_match('/name="(?:card|cvv|card_number|card_code|card_expiry)"/', $page['html']), 'Payment handoff has a normal customer interface and no card collection');
     pay($alice, $csrf, $token, 'failure');
     $page = request($alice, 'php/payment.php');

@@ -49,7 +49,7 @@ there is no payment gateway, external financial settlement or card-data storage.
    evidence. Leave `CHWOO_DB_NAME` unset for the normal store; the integration
    runners use it only in their isolated processes. The schema uses MariaDB's
    `PERSISTENT` generated-column syntax; another database/version needs verification.
-6. Open [CHWOO](http://localhost:8000/chwoo/). Check Home, New In pagination,
+6. Open [CHWOO](http://localhost:8000/chwoo/). Check Home, the latest-eight New In listing,
    Shop filtering/sorting, a product's colour/size/price, LOOKBOOK's Top + Bottom
    and Dress modes, and bag updates. On a disposable demonstration installation,
    register a fictitious customer, exercise Wishlist and Saved Addresses, and

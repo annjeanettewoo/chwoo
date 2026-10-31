@@ -9,6 +9,11 @@
     font-weight: normal;
 }
 
+/* Wrapped names share the same price baseline within each grid row. */
+.newin-page .product-card { display: flex; flex-direction: column; min-width: 0; }
+.newin-page .product-card > a { display: block; }
+.newin-page .product-card h3 { flex: 1; }
+
 /* Keep the original 3:4 product grid if a database photo is missing. */
 .newin-page .product-photo-placeholder {
     aspect-ratio: 3 / 4;
