@@ -69,7 +69,7 @@ function collectionImage(string $filename, string $alt, string $placeholderText)
                 <h2 id="midsommar-title">Midsommar</h2>
                 <p>Long days, blue skies and nowhere else to be.</p>
                 <p>Our Midsommar collection is inspired by slow afternoons, warm sunshine and the little moments that make summer feel special.</p>
-                <a class="collection-text-link" href="<?= htmlspecialchars($shopUrl) ?>">SHOP THE COLLECTION →</a>
+                <a class="collection-text-link" href="<?= htmlspecialchars($shopUrl) ?>">SHOP ALL PIECES →</a>
             </div>
             <figure class="collection-photo collection-photo-main">
                 <?php collectionImage('midsommar-editorial-01.jpg', 'Midsommar campaign lifestyle photograph', '01 · Lifestyle / landscape photo · 4:5'); ?>
@@ -88,7 +88,7 @@ function collectionImage(string $filename, string $alt, string $placeholderText)
                 <p class="collection-eyebrow">THE MIDSOMMAR EDIT</p>
                 <h2 id="wear-title">Made for sunny days.</h2>
                 <p>Easy pieces for everyday plans, impromptu outings, and everything in between.</p>
-                <a class="collection-button" href="<?= htmlspecialchars($shopUrl) ?>">EXPLORE THE COLLECTION →</a>
+                <a class="collection-button" href="<?= htmlspecialchars($shopUrl) ?>">SHOP ALL PIECES →</a>
             </div>
         </section>
     </main>

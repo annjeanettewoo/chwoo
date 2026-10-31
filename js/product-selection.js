@@ -8,6 +8,18 @@
     const message = document.getElementById('stock-message');
     const addButton = form.querySelector('.add-to-bag');
 
+    // Native links also fire click when activated with Enter.
+    const guideLink = form.querySelector('a[href="#size-and-fit"]');
+    const guide = document.getElementById('size-and-fit');
+    if (guideLink && guide) {
+        guideLink.addEventListener('click', function (event) {
+            event.preventDefault();
+            guide.open = true;
+            guide.querySelector('summary').focus({ preventScroll: true });
+            guide.scrollIntoView({ block: 'center' });
+        });
+    }
+
     function updateSelection() {
         const colour = form.querySelector('input[name="colour"]:checked');
         const size = form.querySelector('input[name="size"]:checked');

@@ -4,7 +4,7 @@ CHWOO uses PHP/MySQLi with the `chwoo_db` database. The latest database has nine
 
 ## Task 06A.1: payment handoff and saved addresses
 
-Payment is assumed to be handled by a third-party provider under the IE4727 guidelines. No portal, redirect, gateway, card fields, card validation or payment-method storage is implemented. **Proceed to Payment** is a CSRF-protected POST representing a successful simulated provider response. It invokes the existing transaction, stock locks and unique-token workflow. The UI's `Paid` status is a local saved status, not evidence of external financial settlement.
+Payment is assumed to be handled by a third-party provider under the IE4727 guidelines. No portal, redirect, gateway, card fields, card validation or payment-method storage is implemented. **CONFIRM ORDER** is a CSRF-protected POST representing a successful simulated provider response. It invokes the existing transaction, stock locks and unique-token workflow. The UI's `Paid` status is a local saved status, not evidence of external financial settlement.
 
 The unsuccessful-provider test action is accepted only when the server process has `CHWOO_TEST_PAYMENT_FAILURE=1` AND `CHWOO_DB_NAME` matches the generated `chwoo_task06_test_` plus 12 hexadecimal characters. Both conditions are required. The test runner sets/restores the flag for its disposable environment; it does not change normal purchases. There is no visible failure button, and URL parameters cannot enable the test mode. Other invalid requests and transaction errors retain their existing checks and preserve the bag.
 
@@ -232,7 +232,7 @@ Historical Task 04C.1 checks against the installed local wishlist table:
 
 Coverage left open at the end of Task 04C.1: two-customer isolation, direct duplicate/FK rejection, inactive/no-colour product handling and product-delete cascades had not received a complete live regression in that task. Account-delete wishlist cleanup was exercised. Its visual checks used the existing browser viewport; other responsive breakpoints were not separately tested then. The drawer uses a full server POST/Redirect/GET reload; this fix bypasses the fresh opening transition on its returned page rather than introducing AJAX.
 
-For the manual demonstration, register fictitious customers using the ordinary form. Browse a filtered Shop or paginated New In listing, open a product, then save it there. Verify the original product colour/size URL after authentication or toggling, and check Account → Wishlist. Wishlist is product-level, so product 8's default-colour dashboard price is SGD 46.00 even when colour 9's product page displays SGD 44.00. Remove demonstration favourites using their normal controls. No demo SQL fixture or local-only update SQL script was created.
+For the manual demonstration, register fictitious customers using the ordinary form. Browse a filtered Shop or latest-eight New In listing, open a product, then save it there. Verify the original product colour/size URL after authentication or toggling, and check Account → Wishlist. Wishlist is product-level, so product 8's default-colour dashboard price is SGD 46.00 even when colour 9's product page displays SGD 44.00. Remove demonstration favourites using their normal controls. No demo SQL fixture or local-only update SQL script was created.
 
 ## Drawer update presentation
 

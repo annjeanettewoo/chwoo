@@ -1,9 +1,5 @@
-/* CHWOO Shop-specific styling.
-   Loads after chwoo.css and retains the original Shop screenshot layout.
-   Keep this separate from the shared site-wide stylesheet. */
-
-/* SHOP PAGE ONLY — based on your original Shop screenshot.
-   Does not modify index.html or chwoo.css. */
+/* CHWOO Shop styling, loaded after header.css.
+   Product and bag pages reuse the shared shop-page layout. */
 .shop-page { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #4B2E1F; background: #fff; }
 .shop-page * { box-sizing: border-box; }
 .shop-page a { color: inherit; }
@@ -59,11 +55,12 @@
 
 .shop-page .shop-grid {
     display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
-    column-gap: 22px; row-gap: 40px; padding: 44px 0 98px;
+    column-gap: 20px; row-gap: 40px; padding: 44px 0 98px;
 }
-.shop-page .shop-product { min-width: 0; text-align: left; }
+.shop-page .shop-product { min-width: 0; text-align: left; display: flex; flex-direction: column; }
+.shop-page .shop-product-link { display: flex; flex-direction: column; flex: 1; }
 .shop-page .shop-image {
-    width: 100%; height: 338px; display: flex; align-items: center;
+    width: 100%; aspect-ratio: 3 / 4; flex-shrink: 0; display: flex; align-items: center;
     justify-content: center; overflow: hidden; background: #fff;
 }
 .shop-page .shop-image img {
@@ -90,7 +87,7 @@
     .shop-page .main-nav { gap: 18px; }
     .shop-page .nav-tools { gap: 12px; }
     .shop-page .nav-tools span, .shop-page .nav-tools a:not(:last-child) { display: none; }
-    .shop-page .shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .shop-page .shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 15px; }
 }
 @media (max-width: 650px) {
     .shop-page .announcement-bar { min-height: 42px; height: auto; padding: 8px; font-size: 10px; }
@@ -101,7 +98,6 @@
     .shop-page .shop-toolbar { align-items: flex-start; flex-direction: column; gap: 20px; }
     .shop-page .category-tabs { gap: 6px; }
     .shop-page .category-tabs a { font-size: 11px; }
-    .shop-page .shop-grid { gap: 22px 12px; padding-top: 25px; }
-    .shop-page .shop-image { height: 210px; }
+    .shop-page .shop-grid { gap: 22px 15px; padding-top: 25px; }
     .shop-page .shop-product-name, .shop-page .shop-product-price { font-size: 12px; }
 }

@@ -13,39 +13,16 @@ function e($value) {
 }
 
 // The current products table has no "added_at" date. Higher product IDs are
-// treated as newer. Show exactly 8 products per page (except the last page).
-$productsPerPage = 8;
-
-// Count all active products so we know how many page buttons to display.
-$countResult = $conn->query(
-    'SELECT COUNT(*) AS total
-     FROM products AS p
-     JOIN product_colours AS c ON c.product_id = p.product_id AND c.is_default = 1
-     WHERE p.is_active = 1'
-);
-$totalProducts = (int)$countResult->fetch_assoc()['total'];
-$totalPages = max(1, (int)ceil($totalProducts / $productsPerPage));
-
-// ?page=1, ?page=2, etc. Reject invalid and out-of-range page numbers.
-$page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT, [
-    'options' => ['min_range' => 1]
-]);
-if ($page === false || $page === null) {
-    $page = 1;
-}
-$page = min($page, $totalPages);
-
-// OFFSET skips the products shown on earlier pages.
-$offset = ($page - 1) * $productsPerPage;
+// treated as newer. New In always shows only the latest eight active products;
+// legacy page query parameters do not change this selection.
 $stmt = $conn->prepare(
     'SELECT p.product_id, p.product_name, c.price, c.image_path
      FROM products AS p
      JOIN product_colours AS c ON c.product_id = p.product_id AND c.is_default = 1
      WHERE p.is_active = 1
      ORDER BY p.product_id DESC
-     LIMIT ? OFFSET ?'
+     LIMIT 8'
 );
-$stmt->bind_param('ii', $productsPerPage, $offset);
 $stmt->execute();
 $result = $stmt->get_result();
 $newArrivals = [];
@@ -74,10 +51,8 @@ $bagCount = $chwooBagCount;
     <link rel="stylesheet" href="<?= e($baseUrl) ?>css/header.css">
     <link rel="stylesheet" href="<?= e($baseUrl) ?>css/home.css">
     <link rel="stylesheet" href="<?= e($baseUrl) ?>css/footer.css">
-    <!-- Only styles a missing-photo placeholder. Does NOT redesign the page. -->
+    <!-- Page heading, card alignment and missing-photo styles. -->
     <link rel="stylesheet" href="<?= e($baseUrl) ?>css/newin.css">
-    <!-- Pagination-only styles. Original CHWOO CSS stays untouched. -->
-    <link rel="stylesheet" href="<?= e($baseUrl) ?>css/newin-pagination.css">
     <link rel="stylesheet" href="<?= chwooEscape($chwooRootUrl) ?>css/bag.css">
 </head>
 <body class="newin-page">
@@ -112,26 +87,6 @@ $bagCount = $chwooBagCount;
             </div>
             <?php if (empty($newArrivals)): ?>
                 <p>New pieces are on their way. Explore our collection again soon.</p>
-            <?php endif; ?>
-
-            <?php if ($totalPages > 1): ?>
-                <nav class="newin-pagination" aria-label="New In pages">
-                    <?php if ($page > 1): ?>
-                        <a class="pagination-link" href="newin.php?page=<?= $page - 1 ?>">&larr; Previous</a>
-                    <?php endif; ?>
-
-                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                        <a class="pagination-link<?= $i === $page ? ' is-current' : '' ?>"
-                           href="newin.php?page=<?= $i ?>"
-                           <?= $i === $page ? 'aria-current="page"' : '' ?>>
-                            <?= $i ?>
-                        </a>
-                    <?php endfor; ?>
-
-                    <?php if ($page < $totalPages): ?>
-                        <a class="pagination-link" href="newin.php?page=<?= $page + 1 ?>">Next &rarr;</a>
-                    <?php endif; ?>
-                </nav>
             <?php endif; ?>
 
             <a href="<?= e($baseUrl) ?>php/shop.php" class="view-all">SHOP ALL PIECES →</a>

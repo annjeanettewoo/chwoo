@@ -111,7 +111,8 @@ try {
         <form method="post" action="payment.php">
             <input type="hidden" name="form_token" value="<?= chwooEscape($_SESSION['chwoo_form_token']) ?>">
             <input type="hidden" name="checkout_token" value="<?= chwooEscape($purchase['token']) ?>">
-            <div class="checkout-payment-actions"><button type="submit" name="action" value="success" class="checkout-button">Proceed to Payment</button><a class="checkout-button checkout-button-secondary" href="checkout.php?step=review">Return to order review</a></div>
+            <p class="checkout-help">Demo checkout: payment is simulated and no real charge will be made.</p>
+            <div class="checkout-payment-actions"><button type="submit" name="action" value="success" class="checkout-button">CONFIRM ORDER</button><a class="checkout-button checkout-button-secondary" href="checkout.php?step=review">Return to order review</a></div>
         </form>
     </section><aside class="checkout-summary"><p class="checkout-eyebrow">YOUR ORDER</p><h2>Order summary</h2>
         <div class="checkout-mini-products"><?php foreach ($chwooBagItems as $item): ?><div class="checkout-mini-product">
