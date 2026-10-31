@@ -1,4 +1,22 @@
 /* Checkout uses CHWOO's shared header, colours and ordinary form controls. */
+.checkout-payment h2, .checkout-acknowledgement h2 { font-size: 24px; font-weight: normal; margin: 0 0 18px; }
+.checkout-payment p, .checkout-payment > a, .checkout-acknowledgement { font-size: 13px; }
+.checkout-payment-actions { display: grid; gap: 14px; margin: 30px 0; }
+.checkout-main .checkout-button-secondary { background: transparent; color: var(--brown); }
+.checkout-main .checkout-button-secondary:hover:not(:disabled) { background: var(--yellow); }
+.checkout-confirmation-status { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 24px; margin: 0 0 36px; padding: 24px 0; border-top: 1px solid #ded6c9; border-bottom: 1px solid #ded6c9; }
+.checkout-confirmation-status dt { font-size: 11px; color: #745c4d; margin-bottom: 8px; }
+.checkout-confirmation-status dd { font-size: 14px; margin: 0; }
+.checkout-save-option { display: flex; align-items: center; gap: 10px; font-size: 12px; margin-top: 24px; }
+.checkout-save-option input { width: 17px; height: 17px; accent-color: #4B2E1F; }
+.checkout-saved-choice select { display: block; width: 100%; min-width: 0; min-height: 49px; padding: 13px 14px; border: 1px solid #cbbfb3; border-radius: 0; color: var(--brown); background: #fff; margin: 0 0 16px; font: 14px/1.5 Arial,sans-serif; }
+.checkout-saved-choice select:focus { border-color: var(--brown); }
+.checkout-saved-choice label { display: block; margin-bottom: 8px; font-size: 12px; }
+.checkout-saved-choice { min-width: 0; padding: 20px; border: 1px solid #ded6c9; border-left: 3px solid var(--blue); background: #f4f0e7; margin-bottom: 26px; }
+@media(max-width:700px) { .checkout-confirmation-status { grid-template-columns:1fr; gap:18px; } }
+.checkout-acknowledgement { border-top: 1px solid #ded6c9; margin-top: 30px; padding-top: 26px; }
+.checkout-acknowledgement summary { cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
+.checkout-acknowledgement pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f4f0e7; padding: 20px; font: 12px/1.7 Arial, sans-serif; }
 .checkout-page { background: var(--warm-white); }
 .checkout-main { max-width: 1440px; margin: auto; padding: 30px 5% 88px; line-height: 1.6; }
 .checkout-main a { color: var(--brown); text-underline-offset: 4px; }
@@ -76,8 +94,10 @@
 .checkout-next p { font-size: 12px; color: #745c4d; margin: 12px 0 20px; }
 .checkout-next .checkout-button { width: 100%; }
 .checkout-next #payment-pending { font-size: 11px; margin-bottom: 0; }
-.checkout-empty { padding: 32px 0; }
-.checkout-empty p { font-size: 14px; margin-bottom: 25px; }
+.checkout-empty { max-width: 700px; margin: 30px auto; padding: clamp(40px, 7vw, 90px) 0; text-align: center; }
+.checkout-empty-accent { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%; background: var(--yellow); color: var(--brown); font-size: 32px; margin-bottom: 24px; }
+.checkout-empty h1 { font-size: clamp(34px, 4.5vw, 54px); font-weight: normal; letter-spacing: -1.5px; line-height: 1.15; margin: 0 0 20px; }
+.checkout-empty > p:not(.checkout-eyebrow):not(.checkout-alert) { font-size: 14px; color: #745c4d; margin: 0 0 30px; }
 .checkout-main :focus-visible { outline: 2px solid #4B2E1F; outline-offset: 4px; }
 @media (max-width: 1000px) {
     .checkout-layout { grid-template-columns: minmax(0, 1fr) 320px; gap: 30px; }

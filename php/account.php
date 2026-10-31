@@ -7,6 +7,7 @@ if (!$identity) {
     exit;
 }
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/saved_details.php';
 $customerId = (int)$identity['customer_id'];
 $stmt = $conn->prepare('SELECT full_name, email, created_at FROM customers WHERE customer_id = ?');
 $stmt->bind_param('i', $customerId);
@@ -20,7 +21,7 @@ if (!$customer) {
     chwooAuthRedirect('', ['form' => 'Please log in again.']);
 }
 $sections = ['dashboard' => 'Dashboard', 'orders' => 'Orders', 'wishlist' => 'Wishlist',
-             'details' => 'Account Details', 'cards' => 'Saved Cards'];
+             'details' => 'Account Details', 'addresses' => 'Addresses', 'cards' => 'Saved Cards'];
 $section = $_GET['section'] ?? 'dashboard';
 if (!is_string($section) || !isset($sections[$section])) { $section = 'dashboard'; }
 $orders = [];
@@ -104,9 +105,9 @@ $firstName = explode(' ', $customer['full_name'])[0];
             <?php if (!$orders): ?>
             <div class="account-empty"><span class="account-empty-mark" aria-hidden="true">&#10033;</span><h3>You haven't placed any orders yet.</h3><p>Every favourite starts with a little browse.</p><a class="account-text-link" href="shop.php">Find something you love &rarr;</a></div>
             <?php else: ?>
-            <div class="account-orders"><table><caption class="account-sr-only">Your <?= $section === 'dashboard' ? 'five most recent orders' : 'order history' ?></caption><thead><tr><th scope="col">Order</th><th scope="col">Date</th><th scope="col">Total</th><th scope="col">Status</th></tr></thead><tbody>
+            <div class="account-orders"><table><caption class="account-sr-only">Your <?= $section === 'dashboard' ? 'five most recent orders' : 'order history' ?></caption><thead><tr><th scope="col">Order</th><th scope="col">Date</th><th scope="col">Total</th><th scope="col">Status</th><th scope="col">Details</th></tr></thead><tbody>
                 <?php foreach ($orders as $order): ?>
-                <tr><td>#<?= (int)$order['order_id'] ?></td><td><?= chwooAuthEscape(date('j M Y', strtotime($order['ordered_at']))) ?></td><td>SGD $<?= number_format((float)$order['total_amount'], 2) ?></td><td><span class="account-order-status"><?= chwooAuthEscape($order['order_status']) ?></span></td></tr>
+                <tr><td>#<?= (int)$order['order_id'] ?></td><td><?= chwooAuthEscape(date('j M Y', strtotime($order['ordered_at']))) ?></td><td>SGD $<?= number_format((float)$order['total_amount'], 2) ?></td><td><span class="account-order-status"><?= chwooAuthEscape($order['order_status']) ?></span></td><td><a class="account-text-link" href="order_confirmation.php?id=<?= (int)$order['order_id'] ?>" aria-label="View details of order <?= (int)$order['order_id'] ?>">View details</a></td></tr>
                 <?php endforeach; ?>
             </tbody></table></div>
             <?php endif; ?>
@@ -144,7 +145,10 @@ $firstName = explode(' ', $customer['full_name'])[0];
         </section>
         <?php endif; ?>
         <?php if ($section === 'cards'): ?>
-        <section class="account-section"><div class="account-empty"><span class="account-empty-mark" aria-hidden="true">&mdash;</span><h2>No saved cards.</h2><p>Saving payment cards is not available at CHWOO.<br>There are no payment cards stored in your account.</p><a class="account-text-link" href="shop.php">Back to the collection &rarr;</a></div></section>
+        <section class="account-section"><div class="account-empty"><h2>No saved cards.</h2><p>CHWOO does not collect or store card details.</p></div></section>
+        <?php endif; ?>
+        <?php if ($section === 'addresses'): ?>
+        <?php include __DIR__ . '/account_saved_details.php'; ?>
         <?php endif; ?>
     </div>
 </main>

@@ -2,6 +2,7 @@
 // Shared session bag data. Include before output on pages that offer the drawer.
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/pricing.php';
 
 function chwooEscape($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -11,11 +12,6 @@ function chwooImageUrl($path, $rootUrl) {
     return preg_match('~^images/[a-zA-Z0-9_./-]+$~', $path)
         && !str_contains($path, '..') && is_file(__DIR__ . '/../' . $path)
         ? $rootUrl . $path : '';
-}
-
-// Demonstration policy: an empty bag is free; otherwise $5 below the $80 threshold.
-function chwooDeliveryCharge($subtotal, $itemCount) {
-    return $itemCount > 0 && $subtotal < 80 ? 5.0 : 0.0;
 }
 
 function chwooBagControls($item, $returnTo, $context = 'drawer') {
@@ -84,13 +80,15 @@ foreach ($_SESSION['chwoo_cart'] as $key => $entry) {
     }
     $quantity = $entry['quantity'];
     $stock = (int)$row['stock_quantity'];
-    $subtotal = (float)$row['price'] * $quantity;
+    $priceCents = chwooPriceCents($row['price']);
+    $subtotal = $priceCents * $quantity / 100;
     $chwooBagItems[] = [
         'variant_id' => $entry['variant_id'], 'product_id' => (int)$row['product_id'],
         'colour_id' => (int)$row['colour_id'],
         'name' => $row['product_name'], 'colour' => $row['colour_name'] ?: 'Colour unspecified',
         'size' => $row['size_code'], 'quantity' => $quantity, 'stock' => $stock,
         'price' => (float)$row['price'], 'subtotal' => $subtotal,
+        'price_cents' => $priceCents, 'image_path' => $row['image_path'],
         'image_url' => chwooImageUrl($row['image_path'], $chwooRootUrl),
         'availability' => $stock === 0 ? 'This variant is out of stock.'
             : ($quantity > $stock ? 'Only ' . $stock . ' available. Please reduce the quantity.' : '')
@@ -99,7 +97,9 @@ foreach ($_SESSION['chwoo_cart'] as $key => $entry) {
     $chwooBagTotal += $subtotal;
 }
 $bagStatement->close();
-$chwooDelivery = chwooDeliveryCharge($chwooBagTotal, $chwooBagCount);
-$chwooEstimatedTotal = $chwooBagTotal + $chwooDelivery;
+$chwooTotals = chwooBagTotals($chwooBagItems);
+$chwooBagTotal = $chwooTotals['subtotal_cents'] / 100;
+$chwooDelivery = $chwooTotals['delivery_cents'] / 100;
+$chwooEstimatedTotal = $chwooTotals['total_cents'] / 100;
 $chwooBagMessage = trim(($_SESSION['chwoo_bag_flash'] ?? '') . ' ' . ($_SESSION['chwoo_cart_notice'] ?? ''));
 unset($_SESSION['chwoo_bag_flash'], $_SESSION['chwoo_cart_notice']);

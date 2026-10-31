@@ -2,7 +2,18 @@
 // Task 05: prepare and review a bag. No order or inventory writes happen here.
 require_once __DIR__ . '/bag.php';
 require_once __DIR__ . '/checkout_helpers.php';
+require_once __DIR__ . '/orders.php';
+require_once __DIR__ . '/saved_details.php';
 header('Cache-Control: no-store');
+// An empty bag has no active review/payment state or checkout errors to resume.
+if (!$chwooBagItems) {
+    unset($_SESSION['chwoo_checkout_feedback'], $_SESSION['chwoo_purchase'],
+        $_SESSION['chwoo_order_error'], $_SESSION['chwoo_payment_error']);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        header('Location: checkout.php', true, 303);
+        exit;
+    }
+}
 $identity = chwooCurrentCustomer();
 $customer = null;
 if ($chwooBagItems && !$identity) {
@@ -33,12 +44,19 @@ $saved = $_SESSION['chwoo_checkout']['details'] ?? [];
 $values = chwooCheckoutValues($saved ?: [
     'full_name' => $customer['full_name'] ?? '', 'email' => $customer['email'] ?? ''
 ]);
-$step = ($_GET['step'] ?? '') === 'review' ? 'review' : 'details';
+$step = $chwooBagItems && ($_GET['step'] ?? '') === 'review' ? 'review' : 'details';
 $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $token = $_POST['form_token'] ?? '';
     if (!is_string($token) || !hash_equals($_SESSION['chwoo_form_token'], $token)) {
         $errors['form'] = 'Please refresh the page and try again.';
+    } elseif (($_POST['action'] ?? '') === 'use_address' && $identity) {
+        $id = is_string($_POST['address_id'] ?? null) ? filter_var($_POST['address_id'], FILTER_VALIDATE_INT) : false;
+        $address = $id ? (chwooSavedDetails($conn, $customerId, 'address', $id)[0] ?? null) : null;
+        if ($address) {
+            $values = chwooCheckoutValues(['full_name'=>$address['recipient_name'], 'email'=>$address['contact_email'],
+                'phone'=>$address['contact_phone'], 'address'=>$address['address'], 'postal_code'=>$address['postal_code'], 'notes'=>$address['notes']]);
+        } else { $errors['form'] = 'Please select an address from your account.'; }
     } elseif (($_POST['action'] ?? '') !== 'details') {
         $errors['form'] = 'Please use the delivery details form.';
     } elseif (!$chwooBagItems || !$identity) {
@@ -46,9 +64,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $values = chwooCheckoutValues($_POST);
         $errors = chwooCheckoutErrors($values);
+        if (!$errors && ($_POST['save_address'] ?? '') === '1') {
+            try { chwooSaveAddress($conn, $customerId, $values); }
+            catch (mysqli_sql_exception $error) { $errors['form'] = 'We could not save this address. Please try again or continue with the save option unchecked.'; }
+        }
         if (!$errors) {
             $_SESSION['chwoo_checkout'] = ['customer_id' => $customerId, 'details' => $values];
-            unset($_SESSION['chwoo_checkout_feedback']);
+            unset($_SESSION['chwoo_checkout_feedback'], $_SESSION['chwoo_order_error'], $_SESSION['chwoo_payment_error']);
             // Preserve availability warnings removed by the canonical bag loader.
             if ($chwooBagMessage !== '') { $_SESSION['chwoo_bag_flash'] = $chwooBagMessage; }
             header('Location: checkout.php?step=review', true, 303);
@@ -67,12 +89,17 @@ if ($feedback) {
     $errors = $feedback['errors'];
     $step = 'details';
 }
-if ($step === 'review' && (!$saved || chwooCheckoutErrors(chwooCheckoutValues($saved)))) {
+if ($chwooBagItems && $step === 'review' && (!$saved || chwooCheckoutErrors(chwooCheckoutValues($saved)))) {
     if ($chwooBagMessage !== '') { $_SESSION['chwoo_bag_flash'] = $chwooBagMessage; }
     header('Location: checkout.php', true, 303);
     exit;
 }
+// Consume payment-to-review feedback once, after any canonical review redirect.
+$orderError = $_SESSION['chwoo_order_error'] ?? '';
+unset($_SESSION['chwoo_order_error']);
 $stockErrors = array_filter($chwooBagItems, function ($item) { return $item['availability'] !== ''; });
+$purchaseToken = $step === 'review' && $chwooBagItems && !$stockErrors
+    ? chwooPreparePurchase($chwooBagItems, $values, $customerId) : '';
 $drawerOpen = in_array($_GET['bag'] ?? '', ['open', 'updated'], true);
 $notice = $drawerOpen ? '' : $chwooBagMessage;
 if (!$drawerOpen) { $chwooBagMessage = ''; }
@@ -107,34 +134,50 @@ function chwooCheckoutField($name, $label, $type, $autocomplete, $attributes = '
     <link rel="stylesheet" href="../css/bag.css">
     <link rel="stylesheet" href="../css/checkout.css">
     <script src="../js/checkout-validation.js" defer></script>
+    <script src="../js/checkout-history.js" defer></script>
 </head>
 <body class="checkout-page">
 <?php include __DIR__ . '/header.php'; ?>
 <main class="checkout-main">
+    <?php if (!$chwooBagItems): ?>
+    <section class="checkout-empty" aria-labelledby="empty-bag-title">
+        <span class="checkout-empty-accent" aria-hidden="true">✦</span>
+        <p class="checkout-eyebrow">YOUR NEXT FAVOURITES</p>
+        <h1 id="empty-bag-title">Your bag is feeling a little lonely.</h1>
+        <p>A little something caught your eye? Find your next favourite piece.</p>
+        <?php if ($notice): ?><p class="checkout-alert" role="alert"><?= chwooEscape($notice) ?></p><?php endif; ?>
+        <a class="checkout-button" href="shop.php">Explore the collection &rarr;</a>
+    </section>
+    <?php else: ?>
     <a class="checkout-back" href="cart.php?from=checkout">&larr; Back to bag</a>
     <div class="checkout-heading">
         <p class="checkout-eyebrow">YOUR NEXT FAVOURITES</p>
-        <h1><?= !$chwooBagItems ? 'Your bag is waiting.' : ($step === 'review' ? 'A final look.' : 'Make it yours.') ?></h1>
+        <h1><?= $step === 'review' ? 'A final look.' : 'Make it yours.' ?></h1>
         <p><?= $step === 'review' ? 'Check your pieces and delivery details. There’s still room for a little change.' : 'A few details, then a chance to review everything.' ?></p>
     </div>
     <ol class="checkout-progress" aria-label="Checkout progress">
         <li <?= $step === 'details' ? 'aria-current="step"' : '' ?>><?= $step === 'review' ? '<a href="checkout.php">' : '' ?><span>01</span> Delivery details<?= $step === 'review' ? '</a>' : '' ?></li>
         <li <?= $step === 'review' ? 'aria-current="step"' : '' ?>><span>02</span> Order review</li>
-        <li class="checkout-upcoming"><span>03</span> Payment <small>(coming soon)</small></li>
+        <li class="checkout-upcoming"><span>03</span> Payment</li>
     </ol>
     <?php if ($notice): ?><p class="checkout-alert" role="alert"><?= chwooEscape($notice) ?></p><?php endif; ?>
-    <?php if (!$chwooBagItems): ?>
-    <section class="checkout-empty"><h2>Find something you love.</h2><p>Add a piece to your bag before continuing to checkout. No order has been placed.</p><a class="checkout-button" href="shop.php">Explore the collection &rarr;</a></section>
-    <?php else: ?>
+    <?php if ($orderError): ?><p class="checkout-alert" role="alert"><?= chwooEscape($orderError) ?></p><?php endif; ?>
     <?php if ($stockErrors): ?><p class="checkout-alert" role="alert">Some selections have limited or no stock. Please reduce their quantities, remove them or choose another variant below. Your bag has not been reserved.</p><?php endif; ?>
     <div class="checkout-layout">
         <div class="checkout-content">
         <?php if ($step === 'details'): ?>
             <section aria-labelledby="delivery-title">
                 <div class="checkout-section-heading"><h2 id="delivery-title">Delivery details</h2><span>Singapore delivery</span></div>
-                <p class="checkout-help">All fields are required unless marked optional. These details are for this checkout only.</p>
+                <p class="checkout-help">All fields are required unless marked optional. You can choose to save this address for future checkouts.</p>
                 <?php if (!empty($errors['form'])): ?><p class="checkout-alert" role="alert"><?= chwooEscape($errors['form']) ?></p><?php endif; ?>
                 <?php if ($errors && empty($errors['form'])): ?><p class="checkout-alert" role="alert">Please check the highlighted fields.</p><?php endif; ?>
+                <?php $addresses = chwooSavedDetails($conn, $customerId, 'address'); ?>
+                <?php if ($addresses): ?><form method="post" action="checkout.php" class="checkout-saved-choice">
+                    <input type="hidden" name="form_token" value="<?= chwooEscape($_SESSION['chwoo_form_token']) ?>">
+                    <label for="address_id">Use a saved address</label><select id="address_id" name="address_id">
+                    <?php foreach ($addresses as $address): ?><option value="<?= (int)$address['id'] ?>"><?= chwooEscape($address['recipient_name'] . ' — ' . $address['address'] . ', ' . $address['postal_code']) ?></option><?php endforeach; ?>
+                    </select><button type="submit" name="action" value="use_address" class="checkout-button checkout-button-secondary">Use address</button>
+                </form><?php endif; ?>
                 <form method="post" action="checkout.php" data-checkout-form>
                     <input type="hidden" name="form_token" value="<?= chwooEscape($_SESSION['chwoo_form_token']) ?>">
                     <input type="hidden" name="action" value="details">
@@ -146,6 +189,7 @@ function chwooCheckoutField($name, $label, $type, $autocomplete, $attributes = '
                         <?php chwooCheckoutField('postal_code', 'Singapore postal code', 'text', 'postal-code', 'inputmode="numeric" pattern="[0-9]{6}" maxlength="6"'); ?>
                         <?php chwooCheckoutField('notes', 'Delivery notes', 'textarea', 'off', 'maxlength="500"', true); ?>
                     </div>
+                    <label class="checkout-save-option"><input type="checkbox" name="save_address" value="1"> Save this address for next time</label>
                     <div class="checkout-form-actions"><a href="cart.php?from=checkout">Edit bag</a><button type="submit" class="checkout-button">Continue to order review &rarr;</button></div>
                 </form>
             </section>
@@ -208,8 +252,12 @@ function chwooCheckoutField($name, $label, $type, $autocomplete, $attributes = '
             <div class="checkout-next">
                 <h3>Everything look right?</h3>
                 <p>Confirm your products, colours, sizes, quantities and delivery information above. Use <strong>Edit bag</strong> or <strong>Edit details</strong> to make any final changes.</p>
-                <button type="button" class="checkout-button" disabled aria-describedby="payment-pending">Payment &mdash; coming soon</button>
-                <p id="payment-pending">Payment and final submission are not available yet. No order has been placed, no stock reserved and no payment taken.</p>
+                <form method="post" action="payment.php">
+                    <input type="hidden" name="form_token" value="<?= chwooEscape($_SESSION['chwoo_form_token']) ?>">
+                    <input type="hidden" name="checkout_token" value="<?= chwooEscape($purchaseToken) ?>">
+                    <button type="submit" name="action" value="review" class="checkout-button" <?= !$purchaseToken ? 'disabled' : '' ?>>Continue to payment &rarr;</button>
+                </form>
+                <p>Check your selections above before continuing to payment.</p>
             </div>
             <?php else: ?><p class="checkout-help">You can edit your selections and delivery details at the next step.</p><?php endif; ?>
         </aside>

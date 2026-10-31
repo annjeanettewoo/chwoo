@@ -196,7 +196,7 @@ if ($product && $selectedColour) {
                         <div class="product-message" role="status"><?= e($bagNotice) ?></div>
                     <?php endif; ?>
                     <?php if ($success): ?>
-                        <div class="product-message success" role="status">
+                        <div class="product-message success" role="status" data-auto-dismiss>
                             <?= e($success) ?> <a href="cart.php">View bag &rarr;</a>
                         </div>
                     <?php endif; ?>

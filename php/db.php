@@ -3,7 +3,8 @@
 $host = 'localhost';
 $username = 'root';
 $password = '';
-$database = 'chwoo_db';
+// Optional process-level override lets local tests use a disposable database.
+$database = getenv('CHWOO_DB_NAME') ?: 'chwoo_db';
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 

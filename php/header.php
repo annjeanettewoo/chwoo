@@ -32,5 +32,10 @@ if ($headerShop): ?>
     </nav>
 </header>
 <?php if (!empty($_SESSION['chwoo_auth_notice'])): ?>
-<p class="chwoo-auth-notice" role="status"><?= chwooAuthEscape($_SESSION['chwoo_auth_notice']) ?></p>
+<?php $temporarySuccess = in_array($_SESSION['chwoo_auth_notice'], [
+    'Welcome back. You are now logged in.', 'Welcome to CHWOO. Your account has been created.',
+    'You have been logged out.', 'You are already logged in.', 'Saved to your wishlist.', 'Removed from your wishlist.'
+], true); ?>
+<p class="chwoo-auth-notice" role="<?= $temporarySuccess ? 'status' : 'alert' ?>" <?= $temporarySuccess ? 'data-auto-dismiss' : '' ?>><?= chwooAuthEscape($_SESSION['chwoo_auth_notice']) ?></p>
 <?php unset($_SESSION['chwoo_auth_notice']); endif; ?>
+<script src="<?= chwooAuthEscape($headerRoot) ?>js/main.js" defer></script>

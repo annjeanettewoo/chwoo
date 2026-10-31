@@ -1,6 +1,60 @@
 # CHWOO database
 
-CHWOO uses PHP/MySQLi with the `chwoo_db` database. The database has eight tables, with prices and images stored per colourway, inventory stored per colour/size variant, and product-level wishlists linked to customers. `schema.sql` defines the complete structure; `seed_products.sql` is the authoritative source for the demonstration catalogue. No migration or previous SQL patch is needed for a fresh installation.
+CHWOO uses PHP/MySQLi with the `chwoo_db` database. The latest database has nine tables, including optional customer-owned saved addresses, with prices and images stored per colourway, inventory stored per colour/size variant, and product-level wishlists linked to customers. `schema.sql` defines the complete structure; `seed_products.sql` is the authoritative source for the demonstration catalogue. No migration or previous SQL patch is needed for a fresh installation.
+
+## Task 06A.1: payment handoff and saved addresses
+
+Payment is assumed to be handled by a third-party provider under the IE4727 guidelines. No portal, redirect, gateway, card fields, card validation or payment-method storage is implemented. **Proceed to Payment** is a CSRF-protected POST representing a successful simulated provider response. It invokes the existing transaction, stock locks and unique-token workflow. The UI's `Paid` status is a local saved status, not evidence of external financial settlement.
+
+The unsuccessful-provider test action is accepted only when the server process has `CHWOO_TEST_PAYMENT_FAILURE=1` AND `CHWOO_DB_NAME` matches the generated `chwoo_task06_test_` plus 12 hexadecimal characters. Both conditions are required. The test runner sets/restores the flag for its disposable environment; it does not change normal purchases. There is no visible failure button, and URL parameters cannot enable the test mode. Other invalid requests and transaction errors retain their existing checks and preserve the bag.
+
+`customer_addresses` is the only new table. It has an unsigned auto-increment `id` primary key; a customer FK with delete cascade; recipient name/email/phone, address text, six-character postal code, optional notes, creation timestamp and a 64-character deduplication fingerprint. Unique `(customer_id, fingerprint)` prevents repeated saves of the same recipient/contact/address. Deduplication normalises case and whitespace and excludes email/notes; saving again does not overwrite an existing record. The normal product seed is unchanged and contains no addresses or test customers.
+
+The save checkbox defaults to unchecked. Saved address selection uses an ownership-scoped, CSRF-protected POST to prefill the editable delivery form; the customer must still continue through validation and review. One-off changes do not overwrite saved addresses. Removal uses an ownership-scoped prepared DELETE and CSRF validation. Orders retain independent delivery snapshots after address deletion. If the new table has not been installed, ordinary checkout still works with a new address; opting to save reports an error and can be retried with the option unchecked.
+
+### Manual local database setup
+
+No live schema or records were altered by this task. Preferred setup: back up any important local records, use an intentionally empty/disposable database, import the complete latest `database/schema.sql`, then `database/seed_products.sql` through phpMyAdmin. Verify nine InnoDB tables, 13 products, 16 colours, 64 variants and zero seeded addresses/customers/orders. Do not import the full files over a populated store.
+
+To retain the installed store instead: back it up, open **http://localhost:8000/phpmyadmin/ → chwoo_db**, verify `customers.customer_id` is an unsigned INT primary key on InnoDB, and confirm `customer_addresses` is absent. Open **SQL**, copy only the complete `CREATE TABLE customer_addresses (...) ENGINE=InnoDB ...;` statement from the latest canonical `schema.sql`, and execute it once. Do not run the surrounding database, customer, catalogue or order statements. Verify **customer_addresses → Structure** against the canonical definition: primary key, unique `uq_customer_address`, FK, defaults and utf8mb4 collation. If the table already exists, inspect rather than rerunning CREATE. This is a manual setup instruction, not a migration or local update script. No existing order-processing definitions change.
+
+### Acknowledgement preview and verification
+
+Customer wording thanks the customer and confirms the recorded order; it makes no bank-settlement claim. Prepared/Accepted/Failed status logic and local-only recipient restrictions remain unchanged. Mail delivery stays disabled. Only after the authorised local mailbox has been configured AND inbox delivery verified should the developer set `delivery_verified=true` in `php/mail_config.php`. With delivery enabled, this flag hides the technical preview for orders whose transport status is Accepted. Prepared/failed orders continue to show truthful diagnostics. This flag does not configure SMTP or prove delivery by itself. No SMTP setup or external email service is included.
+
+Run `php tests/task06.php` with XAMPP's PHP binary for the updated order and address integration suite, which also runs Task 05. Its test database/server are disposable; the installed database is checked for unchanged records. Run `node tests/checkout-validation.mjs` and `node tests/notifications.mjs` separately. No card-form or saved-payment-method files/tables are required.
+
+## Task 06 setup and order fields
+
+Task 06 added the following definitions to its eight-table baseline; Task 06A.1 adds the ninth table above. The general product seed is unchanged and contains no customer or order fixtures.
+
+| Table / definition | Purpose |
+| --- | --- |
+| `orders.checkout_token CHAR(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL` | Server-generated checkout identifier. Unique index `uq_orders_checkout_token (checkout_token)` prevents a successful submission being recorded twice. Nullable for legacy orders; new purchases always supply a 64-character hexadecimal token. |
+| `orders.acknowledgement_status ENUM('Prepared','Accepted','Failed') NOT NULL DEFAULT 'Prepared'` | Distinguishes prepared email text, local transport acceptance and attempted/invalid-config failure. `Accepted` does not establish mailbox delivery. |
+| `order_items.product_image_path VARCHAR(255) NOT NULL DEFAULT ''` | Snapshot of the selected colourway's image path, alongside existing name/colour/size/price snapshots. A removed image displays a placeholder. |
+
+The existing `acknowledgement_sent_at` timestamp is populated only when the local PHP mail transport accepts a message. It records acceptance time, not verified delivery. Postal code and optional delivery notes are saved in the existing `orders.delivery_address` text; no duplicate address fields are needed.
+
+**The installed `chwoo_db` was not altered or rebuilt by Task 06. It needs the three fields and unique index above before it can record new purchases.** Use the fresh-install workflow below on an intentionally empty database. Import the latest schema, then the unchanged product seed, and inspect the new fields/index in phpMyAdmin. Never import the full files over populated tables.
+
+If the developer needs to retain an existing installation, first back it up and inspect its current structure. In phpMyAdmin select **chwoo_db → orders → Structure**, add `checkout_token` as nullable CHAR(64), default NULL, `ascii_bin` collation; add its UNIQUE index named `uq_orders_checkout_token`. Add `acknowledgement_status` as ENUM with values `'Prepared','Accepted','Failed'`, NOT NULL, default `Prepared`. Then select **order_items → Structure** and add `product_image_path` as VARCHAR(255), NOT NULL, default the empty string. Verify types, nullability, defaults, collation and index name against `schema.sql`; skip definitions that already match. These are optional manual Structure operations, not an application migration or an automatically executed update script. Existing orders keep NULL tokens and empty image paths. The preferred reproducible setup remains a fresh schema-then-seed import.
+
+New orders are linked to the session customer, recorded as `Paid` / `Confirmed` **for simulated payment only**, and written with their item snapshots and stock deductions in one InnoDB transaction. Row locks and guarded stock UPDATEs prevent overselling. Integer-cent calculations are shared with the bag; successful retries resolve to the order with the same unique token. Failed simulations create no order and deduct no stock.
+
+### Local acknowledgement setup
+
+`php/mail_config.php` defaults to delivery disabled and empty sender/recipient. Acknowledgement text is prepared from saved orders and is available in the owner's confirmation view. This preview is not sent mail.
+
+Before enabling delivery, the student/developer must provision and authorise their own mailbox on the permitted **local** mail server. Set the fixed `recipient` and `sender` in `mail_config.php` to the actual authorised `account@localhost` addresses, then set `enabled` to `true`. The customer's checkout email is never a delivery destination. External recipient domains are rejected; no email API, external service or Composer library is used. The app only permits PHP's loopback SMTP transport with an empty `sendmail_path`; it does not modify system-wide mail configuration. Enabling the app setting alone does not install or configure a mail server.
+
+The inspected environment has PHP `SMTP=localhost`, `smtp_port=25`, no `sendmail_path`/`sendmail_from`, and no listener on ports 25 or 1025. No authorised local mailbox was supplied, so delivery remains disabled. No mail was sent during Task 06. Real local transport acceptance and inbox delivery still need testing after permitted configuration. A mail failure occurs after the purchase commits and cannot roll back the order. Confirmation distinguishes Prepared, Accepted and Failed; confirmation refreshes and duplicate purchase requests never resend mail automatically.
+
+### Task 06 verification
+
+Run `C:\xampp\php\php.exe tests\task06.php` with local MariaDB available. The CLI-only runner creates a randomly named `chwoo_task06_test_*` database, imports the canonical schema then seed there, starts an isolated loopback PHP server with the process-only `CHWOO_DB_NAME` override, and runs HTTP, rollback and concurrent-transaction checks. It removes only its generated test database/server and verifies that installed `chwoo_db` records are unchanged. It does not rebuild or change the live database. Disposable customers/orders stay out of the general seed.
+
+Run `node tests\checkout-validation.mjs` and `node tests\notifications.mjs` for dependency-free JavaScript unit checks. These do not substitute for browser layout verification. See `TASK06_REPORT.md` for exact outcomes and limitations.
 
 ## Fresh installation with phpMyAdmin
 
@@ -19,7 +73,7 @@ Connection settings are in `php/db.php`, which selects `chwoo_db` and sets `utf8
 
 Repeated imports are not safe: `CREATE DATABASE IF NOT EXISTS` permits an empty database, but plain `CREATE TABLE` fails when tables already exist, and repeated seed inserts encounter duplicate primary/unique keys. DDL is not transactional, and an import client can continue after errors. Stop on failure and inspect database state before retrying; a final `COMMIT` does not prove that every statement succeeded. Use strict SQL mode when importing.
 
-The local server was verified read-only as XAMPP MariaDB 10.4.32 during Task 04C. The schema uses InnoDB, `utf8mb4_unicode_ci`, CHECK constraints and MariaDB's `PERSISTENT` generated-column syntax. The updated schema has not been imported during this task; compatibility with a different MySQL/MariaDB version must be verified before importing.
+The local server is XAMPP MariaDB 10.4.32. The schema uses InnoDB, `utf8mb4_unicode_ci`, CHECK constraints and MariaDB's `PERSISTENT` generated-column syntax. Task 06 successfully tested a fresh schema/seed import in a disposable database on that server; the installed store was left unchanged. Compatibility with a different MySQL/MariaDB version must be verified before importing.
 
 ## Optional existing-database installation for Task 04C
 
@@ -53,8 +107,8 @@ Inspect the result for errors, then use **wishlist → Structure** to verify its
 | `product_variants` | `variant_id` | `colour_id` FK to `product_colours`, `size_code` FK to `size_guide`, and stock quantity. Unique `(colour_id, size_code)`; the sole inventory authority. |
 | `customers` | `customer_id` | Full name, unique email, password hash and creation timestamp. No demonstration accounts. |
 | `wishlist` | `wishlist_id` | `customer_id` FK to `customers`, `product_id` FK to `products`, and saved timestamp. Unique `(customer_id, product_id)` prevents duplicate saves. Both FKs use `ON DELETE CASCADE` to remove orphan favourites. |
-| `orders` | `order_id` | `customer_id` FK to `customers`; recipient/contact/delivery snapshots, subtotal, shipping, total, payment/order states and timestamps. |
-| `order_items` | `order_item_id` | `order_id` FK to `orders`, `variant_id` FK to `product_variants`; quantity, unit price and purchased name/size/colour snapshots. |
+| `orders` | `order_id` | `customer_id` FK to `customers`; unique nullable checkout token; recipient/contact/delivery snapshots, subtotal, shipping, total, simulated payment/order states, acknowledgement status and timestamps. |
+| `order_items` | `order_item_id` | `order_id` FK to `orders`, `variant_id` FK to `product_variants`; quantity, unit price and purchased name/image-path/size/colour snapshots. |
 
 `product_colours.swatch_hex` has the exact SQL definition `swatch_hex CHAR(7) DEFAULT NULL`. It supplies the display swatch for a colourway. All seeded values use `#RRGGBB`; SQL does not enforce that format. `php/product.php` validates the format and uses a fallback display colour when necessary. These are preview swatches, not supplier colour specifications.
 
@@ -64,7 +118,7 @@ The generated `default_product_id` unique index permits at most one default colo
 
 Foreign keys use restrictive default delete/update behaviour except the wishlist's two delete cascades. Deactivate referenced products rather than deleting them, and do not repurpose purchased variant or colour identities. Order-item product identity follows variant → colour → product; there is no redundant product FK. Snapshot columns support historical purchase details, but SQL does not populate or make those snapshots immutable.
 
-CHECK constraints validate boolean flags, size codes, nonnegative prices/stock/amounts, positive purchased quantities and `total_amount = item_subtotal + shipping_charge`. IDs and stock use unsigned integer types; money uses decimal types in SGD. Row constraints cannot validate an order subtotal against all its items, require a nonempty order or handle concurrent checkout. Those checks are not implemented by the current bag.
+CHECK constraints validate boolean flags, size codes, nonnegative prices/stock/amounts, positive purchased quantities and `total_amount = item_subtotal + shipping_charge`. IDs and stock use unsigned integer types; money uses decimal types in SGD. Row constraints cannot validate an order subtotal against all its items, require a nonempty order or handle concurrent checkout. `php/orders.php` performs those checks with prepared statements, integer-cent pricing, a transaction, row locking and atomic stock deductions.
 
 ## Seeded catalogue
 
@@ -129,13 +183,15 @@ Variant IDs are seeded as `(colour_id - 1) * 4 + sort_order` (1–64). Applicati
 | `php/auth.php`, `php/auth_action.php`, `php/login.php` | Registration with PHP password hashes, login/logout and session identity. Normal authentication opens Account; pending wishlist authentication saves the intended product and returns to the original internal page. Shared return-path allowlist and CSRF token also serve bag/wishlist forms. |
 | `php/wishlist.php`, `php/wishlist_action.php` | Prepared wishlist reads/writes scoped to the session customer. POST/Redirect/GET saves/removes products; duplicate saves are idempotent. Guests retain one pending product and validated return path through login or registration. |
 | `php/account.php` | Existing account navigation and details/orders, plus real Wishlist cards with current catalogue image/price, product links, removal controls and an empty state. |
+| `php/checkout.php`, `php/payment.php`, `php/orders.php` | Delivery details, editable review, CSRF-protected payment simulation, transactional order processing and durable duplicate-submission protection. |
+| `php/order_confirmation.php`, `php/order_mail.php` | Owner-only saved confirmation, historical purchase snapshots and preparation/optional local triggering of acknowledgement email. |
 | `css/wishlist.css` | Product-detail outline/filled hearts and scoped responsive account cards with neutral text removal controls. Home, Shop and New In have no wishlist controls or wishlist reads. |
 
 `$_SESSION['chwoo_cart']` is keyed by `variant_id`; each entry stores `variant_id` and `quantity`. Display details and prices are retrieved from the database. The bag does not reserve or decrement database stock, and quantities can become unavailable after another stock change.
 
-Demonstration delivery is **SGD 5 for a nonempty bag below SGD 80**, and free from SGD 80. An empty bag has no delivery charge. This rule is implemented in `chwooDeliveryCharge()` in `php/bag.php`.
+Demonstration delivery is **SGD 5 for a nonempty bag below SGD 80**, and free from SGD 80. An empty bag has no delivery charge. This rule and integer-cent totals are shared in `php/pricing.php` by the bag, review and order finalisation.
 
-Checkout, payment processing and database order recording are not implemented. The checkout control currently shows a pending message without placing an order. No card data should be stored.
+Checkout now leads from delivery details to editable review and demonstration payment. A successful simulated payment creates a confirmed purchase and deducts exact variant stock transactionally; a failed simulation preserves the bag and database. Confirmation and Account order history load saved owner-scoped records. There is no real payment gateway and no card data is collected or stored.
 
 ## Wishlist behaviour and security
 
