@@ -125,18 +125,23 @@ $initialTotal = array_sum(array_map(fn($key) => $slots[$key]['colour']['priceCen
                 <div class="outfit-board-heading"><h2 id="board-title">Your styling board</h2><span id="board-mode-label"><?= $outfitMode === 'dress' ? 'THE ONE-PIECE EDIT' : 'THE TWO-PIECE EDIT' ?></span></div>
                 <div class="outfit-board" id="styling-board" data-mode="<?= $outfitMode ?>">
                     <p class="outfit-board-note" aria-hidden="true"><span data-board-lead><?= $outfitMode === 'dress' ? 'a whole look' : 'a little better' ?></span><br><em data-board-emphasis><?= $outfitMode === 'dress' ? 'in one.' : 'together.' ?></em></p>
-                    <span class="outfit-board-star" aria-hidden="true">✳</span>
+                    <div class="outfit-canvas">
                     <?php foreach ($slots as $key => $slot): ?>
                     <figure class="outfit-photo outfit-photo-<?= $key ?>" data-preview="<?= $key ?>" <?= !in_array($key, $activeSlots, true) ? 'hidden' : '' ?>>
                         <div class="outfit-photo-bar"><span><?= $slot['number'] ?> / <?= strtoupper($slot['label']) ?></span><button type="button" data-remove="<?= $key ?>" aria-label="Remove <?= strtolower($slot['label']) ?> from styling board" <?= !$slot['initial'] ? 'hidden' : '' ?>>&times;</button></div>
+                        <div class="outfit-garment-row">
+                        <button type="button" class="outfit-cycle" data-cycle="-1" aria-label="Previous <?= strtolower($slot['label']) ?>" disabled><span aria-hidden="true">&#8592;</span></button>
                         <div class="outfit-photo-image">
                             <img data-preview-image <?= !empty($slot['colour']['image']) ? 'src="' . chwooAuthEscape($slot['colour']['image']) . '"' : 'hidden' ?> alt="<?= chwooAuthEscape(($slot['initial']['name'] ?? '') . ' in ' . ($slot['colour']['name'] ?? '')) ?>">
                             <p data-photo-unavailable <?= !empty($slot['colour']['image']) || !$slot['initial'] ? 'hidden' : '' ?>>Photo unavailable for this colour.</p>
                             <button type="button" class="outfit-empty-prompt" data-choose="<?= $key ?>" <?= $slot['initial'] ? 'hidden' : '' ?>><span aria-hidden="true">+</span>Choose a <?= strtolower($slot['label']) ?></button>
                         </div>
+                        <button type="button" class="outfit-cycle" data-cycle="1" aria-label="Next <?= strtolower($slot['label']) ?>" disabled><span aria-hidden="true">&#8594;</span></button>
+                        </div>
                         <figcaption><strong data-preview-name><?= chwooAuthEscape($slot['initial']['name'] ?? 'Your next favourite') ?></strong><span data-preview-detail><?= chwooAuthEscape($slot['colour']['name'] ?? 'Choose a piece to get started') ?><?= $slot['colour'] ? ' · Choose a size' : '' ?></span></figcaption>
                     </figure>
                     <?php endforeach; ?>
+                    </div>
                     <span class="outfit-board-signature" aria-hidden="true">STYLED BY YOU / CHWOO</span>
                 </div>
                 <div class="outfit-board-footer"><p>Real pieces. A fresh perspective.</p><button type="button" id="outfit-clear">Clear board <span aria-hidden="true">↗</span></button></div>

@@ -26,6 +26,9 @@
 
     function money(cents) { return 'SGD $' + (cents / 100).toFixed(2); }
     function activeSlots() { return mode === 'dress' ? ['dress'] : ['top', 'bottom']; }
+    function productsFor(key) {
+        return products.filter(function (product) { return product.category === categories[key]; });
+    }
     function productFor(key) {
         return products.find(function (product) {
             return product.id === state[key].productId && product.category === categories[key];
@@ -170,6 +173,27 @@
         updateSlot(key);
     }
 
+    // Dropdowns and arrows share the existing slot state and rendering path.
+    function selectProduct(key, productId) {
+        const product = productsFor(key).find(function (item) { return item.id === Number(productId); });
+        state[key] = { productId: product ? product.id : null,
+            colourId: product && product.colours.length ? product.colours[0].id : null, variantId: null };
+        document.getElementById('outfit-' + key).value = product ? String(product.id) : '';
+        renderChoices(key);
+        updateSlot(key);
+        updateSummary(product ? product.name + ' selected.' : labels[key] + ' removed.');
+    }
+
+    function cycleProduct(key, direction) {
+        const entries = productsFor(key);
+        if (entries.length < 2) { return; }
+        const current = entries.findIndex(function (product) { return product.id === state[key].productId; });
+        // A cleared slot starts at the first/last entry; selected entries wrap.
+        const next = current < 0 ? (direction > 0 ? 0 : entries.length - 1)
+            : (current + direction + entries.length) % entries.length;
+        selectProduct(key, entries[next].id);
+    }
+
     Object.keys(labels).forEach(function (key) {
         const fieldset = root.querySelector('[data-slot="' + key + '"]');
         const select = fieldset.querySelector('[data-product]');
@@ -180,14 +204,7 @@
             colourId: selectedColour ? Number(selectedColour.value) : null,
             variantId: selectedVariant ? Number(selectedVariant.value) : null };
         select.addEventListener('change', function () {
-            const product = products.find(function (item) {
-                return item.id === Number(select.value) && item.category === categories[key];
-            });
-            state[key] = { productId: product ? product.id : null,
-                colourId: product && product.colours.length ? product.colours[0].id : null, variantId: null };
-            renderChoices(key);
-            updateSlot(key);
-            updateSummary(product ? product.name + ' selected.' : labels[key] + ' removed.');
+            selectProduct(key, select.value);
         });
         fieldset.addEventListener('change', function (event) {
             if (event.target.name === key + '_colour') {
@@ -203,6 +220,10 @@
             }
         });
         const preview = root.querySelector('[data-preview="' + key + '"]');
+        preview.querySelectorAll('[data-cycle]').forEach(function (button) {
+            button.disabled = productsFor(key).length < 2;
+            button.addEventListener('click', function () { cycleProduct(key, Number(button.dataset.cycle)); });
+        });
         preview.querySelector('[data-remove]').addEventListener('click', function () {
             clearSlot(key);
             updateSummary(labels[key] + ' removed.');
