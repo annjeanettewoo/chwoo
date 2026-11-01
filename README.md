@@ -27,9 +27,8 @@ page limit, as confirmed by Prof Hu Xiao.
 
 1. Install Windows XAMPP with Apache, PHP and MariaDB (labelled **MySQL** in the
    XAMPP Control Panel). The development baseline is PHP 8.2.12 and MariaDB
-   10.4.32. PHP needs MySQLi/mysqlnd, sessions and mbstring. The supplied integration
-   tests also use cURL and DOM. Node is optional for JavaScript tests; it is not
-   needed to serve the website. No npm build or Composer installation is required.
+   10.4.32. PHP needs MySQLi/mysqlnd, sessions and mbstring. Node is not needed to
+   serve the website. No npm build or Composer installation is required.
 2. Place this checkout at `C:\xampp\htdocs\chwoo`. Configure Apache's
    `C:\xampp\apache\conf\httpd.conf` with `Listen 8000` and
    `ServerName localhost:8000`, keeping `DocumentRoot "C:/xampp/htdocs"`.
@@ -61,8 +60,7 @@ page limit, as confirmed by Prof Hu Xiao.
 5. Check `php/db.php` against the local MariaDB account. It connects to
    `localhost`, selects `chwoo_db` and sets `utf8mb4`. Configure any machine-specific
    credentials privately; never include passwords in shared source or submission
-   evidence. Leave `CHWOO_DB_NAME` unset for the normal store; the integration
-   runners use it only in their isolated processes. The schema uses MariaDB's
+   evidence. Leave `CHWOO_DB_NAME` unset for the normal store. The schema uses MariaDB's
    `PERSISTENT` generated-column syntax; another database/version needs verification.
 6. Open [CHWOO](http://localhost:8000/chwoo/). Check Home, the latest-eight New In listing,
    Shop filtering/sorting, a product's colour/size/price, LOOKBOOK's Top + Bottom
@@ -150,33 +148,13 @@ need to be edited for setup.
 
 ## Verification
 
-Run from the repository root in PowerShell:
+Follow the manual walkthrough in the installation section above, using disposable
+demonstration data for actions that create orders or deduct stock. Verify local
+email receipt separately after configuring Mercury and Thunderbird.
 
-```powershell
-C:\xampp\php\php.exe -d disable_functions=mail tests\order_mail.php
-C:\xampp\php\php.exe -d disable_functions=mail tests\task06.php
-C:\xampp\php\php.exe -d disable_functions=mail tests\task07c.php
-node tests\product-selection.mjs
-node tests\checkout-validation.mjs
-node tests\checkout-history.mjs
-node tests\notifications.mjs
-```
-
-The mail suite uses in-memory snapshots and mock transports, without database
-access. Tasks 06 and 07C require local MariaDB; run them sequentially with no
-concurrent store activity so the installed-record comparisons remain meaningful.
-Each creates/removes only a randomly named
-disposable database and isolated PHP server, and includes Task 05 and saved-address
-regressions. The test server has `mail()` disabled and prepare-only mode enabled,
-and explicit acceptance/failure tests inject mocks. Installed store records are
-compared before/after and must remain unchanged. Task 07C also runs `task07c2.php`
-and `task07d1.php`, covering outfit/bag integration, navigation, Wishlist → Orders
-authentication. Task 07C includes Task 09A catalogue checks and verifies the final
-header/footer destinations and removal of Collections. These included files are not standalone
-runners. Do not run Task 05 separately against the installed store. If temporary
-storage is restricted, point process-local `TEMP` and `TMP` at a writable scratch
-directory before launching PHP. JavaScript checks simulate events and do not
-establish browser or Thunderbird rendering. Test definitions and historical notes
-do not establish a pass until the corresponding command has actually completed.
+Automated regression suites were used during development and are retained in Git
+history at commit `185e7fa`; they are not included in the final working tree.
+Historical test results in this documentation describe earlier executions, not a
+new verification of the current installation.
 
 Database setup and snapshot fields are documented in [database/README.md](database/README.md).

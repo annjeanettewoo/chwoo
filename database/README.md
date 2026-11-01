@@ -6,7 +6,7 @@ CHWOO uses PHP/MySQLi with the `chwoo_db` database. The latest database has nine
 
 Payment is assumed to be handled by a third-party provider under the IE4727 guidelines. No portal, redirect, gateway, card fields, card validation or payment-method storage is implemented. **CONFIRM ORDER** is a CSRF-protected POST representing a successful simulated provider response. It invokes the existing transaction, stock locks and unique-token workflow. The UI's `Paid` status is a local saved status, not evidence of external financial settlement.
 
-The unsuccessful-provider test action is accepted only when the server process has `CHWOO_TEST_PAYMENT_FAILURE=1` AND `CHWOO_DB_NAME` matches the generated `chwoo_task06_test_` plus 12 hexadecimal characters. Both conditions are required. The test runner sets/restores the flag for its disposable environment; it does not change normal purchases. There is no visible failure button, and URL parameters cannot enable the test mode. Other invalid requests and transaction errors retain their existing checks and preserve the bag.
+The unsuccessful-provider test action is accepted only when the server process has `CHWOO_TEST_PAYMENT_FAILURE=1` AND `CHWOO_DB_NAME` matches the generated `chwoo_task06_test_` plus 12 hexadecimal characters. Both conditions are required. These settings were used only in isolated development regressions; leave them unset for normal purchases. There is no visible failure button, and URL parameters cannot enable the test mode. Other invalid requests and transaction errors retain their existing checks and preserve the bag.
 
 `customer_addresses` is the ninth canonical table, introduced in Task 06A.1. It has an unsigned auto-increment `id` primary key; a customer FK with delete cascade; recipient name/email/phone, address text, six-character postal code, optional notes, creation timestamp and a 64-character deduplication fingerprint. Unique `(customer_id, fingerprint)` prevents repeated saves of the same recipient/contact/address. Deduplication normalises case and whitespace and excludes email/notes; saving again does not overwrite an existing record. The normal product seed is unchanged and contains no addresses or test customers.
 
@@ -22,7 +22,7 @@ To retain the installed store instead: back it up, open **http://localhost:8000/
 
 Customer wording thanks the customer and confirms the recorded order; it makes no bank-settlement or external-email-delivery claim. The normal confirmation page no longer contains the technical email preview, for any acknowledgement status. Prepared/Accepted/Failed and the acceptance timestamp remain internal diagnostics. The HTML and plain-text alternatives use saved order snapshots and link to the account's order history. See the root `README.md` for the gitignored local override and verified Mercury settings. `delivery_verified` is local manual-verification metadata only; it does not configure SMTP or prove delivery of individual messages.
 
-Run `C:\xampp\php\php.exe -d disable_functions=mail tests\task06.php` for the order and address integration suite, which also runs Task 05. Its test database/server are disposable; the installed database is checked for unchanged records. Run `node tests/checkout-validation.mjs` and `node tests/notifications.mjs` separately. No card-form or saved-payment-method files/tables are required.
+No card-form or saved-payment-method files/tables are required.
 
 ## Task 06 setup and order fields
 
@@ -52,17 +52,17 @@ Before enabling delivery, the developer must provision and authorise their own m
 
 This verifies delivery in the configured local environment only, not delivery to external customer email addresses or another machine. For another machine, follow the Mercury, Thunderbird and gitignored local-override setup instructions in the root `README.md`, then verify its local inbox separately. Enabled settings belong only in the ignored override. A mail failure occurs after the purchase commits and cannot roll back the order. Confirmation refreshes and duplicate purchase requests never resend mail automatically.
 
-### Task 06 verification
+### Historical Task 06 verification
 
-Run `C:\xampp\php\php.exe -d disable_functions=mail tests\task06.php` with local MariaDB available. The CLI-only runner creates a randomly named `chwoo_task06_test_*` database, imports the canonical schema then seed there, starts an isolated loopback PHP server with the process-only `CHWOO_DB_NAME` override, and runs HTTP, rollback and concurrent-transaction checks. It removes only its generated test database/server and verifies that installed `chwoo_db` records are unchanged. It does not rebuild or change the live database. Disposable customers/orders stay out of the general seed. Run suites sequentially without concurrent store activity; see the root README for Task 07C and temporary-directory setup.
+Development regressions exercised HTTP, rollback and concurrent-transaction behaviour using disposable databases and isolated servers, with checks that installed records remained unchanged. Email checks used mock transports, and JavaScript checks simulated events; these did not establish browser or Thunderbird rendering. This is historical coverage, not a new execution or a guarantee about the current installation.
 
-Run `C:\xampp\php\php.exe -d disable_functions=mail tests\order_mail.php` for focused mock-only email tests. Run `node tests\checkout-validation.mjs`, `node tests\checkout-history.mjs` and `node tests\notifications.mjs` for dependency-free JavaScript unit checks. These do not substitute for browser or Thunderbird layout verification. See the root `README.md` for current test commands and mail configuration.
+The automated suites are retained in Git history at commit `185e7fa` and are not included in the final working tree. See the root `README.md` for the manual installation walkthrough and mail configuration.
 
 ## Fresh installation with phpMyAdmin
 
 These scripts are for fresh installations, not incremental migrations. Do not import them over an existing populated database or combine them with an old seed/export. Both team members should use the same SQL files/revision.
 
-**Preserve the installed store. If `chwoo_db` contains any tables or records, do not delete it, overwrite it or run these imports there.** Both SQL files explicitly select `chwoo_db`; choosing another name in phpMyAdmin does not isolate the import. Use a separate empty MariaDB instance for a fresh-install rehearsal, or let the supplied integration runners redirect the scripts into their generated disposable database.
+**Preserve the installed store. If `chwoo_db` contains any tables or records, do not delete it, overwrite it or run these imports there.** Both SQL files explicitly select `chwoo_db`; choosing another name in phpMyAdmin does not isolate the import. Use a separate empty MariaDB instance for a fresh-install rehearsal.
 
 1. Preserve important existing database records and verify any backup separately. These steps do not migrate an existing store.
 2. Confirm `chwoo_db` is absent or intentionally empty. If it contains tables, stop and use an isolated empty instance; no deletion is required by this guide.
@@ -212,7 +212,7 @@ No demo-account SQL fixture is needed: reproducible testing uses fictitious acco
 
 ## Verification boundaries
 
-The following Task 04C / 04C.1 results are historical snapshots, not the current table inventory or a new execution of those checks. The current canonical schema has nine tables. Later regression commands are listed in the root README.
+The following Task 04C / 04C.1 results are historical snapshots, not the current table inventory or a new execution of those checks. The current canonical schema has nine tables. The root README provides the current manual verification walkthrough.
 
 Initial Task 04C checks (historical, before the Task 04C.1 listing-scope correction):
 
