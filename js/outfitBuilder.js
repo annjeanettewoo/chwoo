@@ -1,8 +1,11 @@
-// Catalogue data is rendered once by PHP; additions use the shared session bag via POST.
+// Outfit Builder — Product selection, garment navigation and styling-board preview.
+// PHP renders the catalogue snapshot and independently validates Add Outfit to Bag POSTs.
 (function () {
     'use strict';
     const root = document.getElementById('outfit-builder');
     if (!root) { return; }
+    // --- Outfit Builder — Catalogue snapshot and slot state ---
+    // Read escaped HTML attributes from outfit.php; prices are integer cents, stock excludes bag quantities.
     const products = Array.from(document.querySelectorAll('#outfit-catalogue [data-product-id]')).map(function (product) {
         return {
             id: Number(product.dataset.productId), name: product.dataset.name, category: product.dataset.category,
@@ -21,14 +24,18 @@
     });
     const labels = { top: 'Top', bottom: 'Bottom', dress: 'Dress' };
     const categories = { top: 'Tops', bottom: 'Bottoms', dress: 'Dresses' };
+    // Each slot retains product/colour/variant IDs across mode changes; no separate arrow index is stored.
     const state = {};
     let mode = root.querySelector('input[name="outfit_mode"]:checked').value;
 
     function money(cents) { return 'SGD $' + (cents / 100).toFixed(2); }
     function activeSlots() { return mode === 'dress' ? ['dress'] : ['top', 'bottom']; }
+    // --- Outfit Builder — Category and selected-variant lookup ---
+    // Filtering preserves PHP's product-ID order, including sold-out pieces, for dropdown/arrow parity.
     function productsFor(key) {
         return products.filter(function (product) { return product.category === categories[key]; });
     }
+    // Resolve selections through their parent product and colour to keep variant identities related.
     function productFor(key) {
         return products.find(function (product) {
             return product.id === state[key].productId && product.category === categories[key];
@@ -49,6 +56,8 @@
         return node;
     }
 
+    // --- Outfit Builder — Colour swatches and size choices ---
+    // Rebuild one slot's colour controls after selection/restoration, then render that colour's sizes.
     function renderChoices(key) {
         const fieldset = root.querySelector('[data-slot="' + key + '"]');
         const product = productFor(key);
@@ -71,6 +80,7 @@
         renderSizes(key);
     }
 
+    // Size-radio values are exact variant IDs submitted to PHP, not size labels or calculated IDs.
     function renderSizes(key) {
         const area = root.querySelector('[data-slot="' + key + '"] [data-sizes]');
         const colour = colourFor(key);
@@ -90,6 +100,8 @@
         });
     }
 
+    // --- Outfit Builder — Garment preview and availability ---
+    // Refresh one slot's caption, image, empty state and availability without changing its selection.
     function updateSlot(key) {
         const product = productFor(key);
         const colour = colourFor(key);
@@ -122,6 +134,7 @@
             : product ? 'No colour available' : 'Choose a piece to get started';
         const image = preview.querySelector('[data-preview-image]');
         const imageUrl = colour ? colour.image : '';
+        // Keep a failed URL hidden on later size updates; a different image URL may load normally.
         if (image.getAttribute('src') !== imageUrl) { delete image.dataset.failedSrc; }
         const imageFailed = image.dataset.failedSrc === imageUrl;
         image.hidden = !imageUrl || imageFailed;
@@ -134,6 +147,9 @@
         fieldset.querySelector('.outfit-sizes').hidden = !colour || !colour.variants.length;
     }
 
+    // --- Outfit Builder — Summary, pricing and completion ---
+    // Sum active colours in cents; require an available size for every active piece before enabling Add.
+    // Optional announcement text feeds the live region. PHP revalidates all submitted identities and stock.
     function updateSummary(announce) {
         const list = document.getElementById('outfit-summary-items');
         list.replaceChildren();
@@ -166,6 +182,7 @@
         if (announce) { document.getElementById('outfit-status').textContent = announce + ' Outfit subtotal ' + money(total) + '. ' + message; }
     }
 
+    // Clear one preview and its dropdown/radios; callers refresh the summary once per action.
     function clearSlot(key) {
         state[key] = { productId: null, colourId: null, variantId: null };
         document.getElementById('outfit-' + key).value = '';
@@ -173,7 +190,9 @@
         updateSlot(key);
     }
 
-    // Dropdowns and arrows share the existing slot state and rendering path.
+    // --- Outfit Builder — Dropdown synchronization and left/right garment arrows ---
+    // Both inputs use this path: select the first/default-first colour and clear the old size.
+    // Variant IDs belong to a specific colour, so a product change requires a new size choice.
     function selectProduct(key, productId) {
         const product = productsFor(key).find(function (item) { return item.id === Number(productId); });
         state[key] = { productId: product ? product.id : null,
@@ -184,6 +203,7 @@
         updateSummary(product ? product.name + ' selected.' : labels[key] + ' removed.');
     }
 
+    // Move only this slot by direction (-1/1); derive the position from its current product ID.
     function cycleProduct(key, direction) {
         const entries = productsFor(key);
         if (entries.length < 2) { return; }
@@ -194,6 +214,8 @@
         selectProduct(key, entries[next].id);
     }
 
+    // --- Outfit Builder — Restore controls and bind per-garment interactions ---
+    // Start from PHP's rendered selections so submitted drafts survive the redirect.
     Object.keys(labels).forEach(function (key) {
         const fieldset = root.querySelector('[data-slot="' + key + '"]');
         const select = fieldset.querySelector('[data-product]');
@@ -206,6 +228,7 @@
         select.addEventListener('change', function () {
             selectProduct(key, select.value);
         });
+        // Colour changes invalidate the previous variant; size changes select an exact variant directly.
         fieldset.addEventListener('change', function (event) {
             if (event.target.name === key + '_colour') {
                 state[key].colourId = Number(event.target.value);
@@ -224,12 +247,14 @@
             button.disabled = productsFor(key).length < 2;
             button.addEventListener('click', function () { cycleProduct(key, Number(button.dataset.cycle)); });
         });
+        // Removing a garment returns focus to its dropdown; the empty prompt uses the same control.
         preview.querySelector('[data-remove]').addEventListener('click', function () {
             clearSlot(key);
             updateSummary(labels[key] + ' removed.');
             select.focus();
         });
         preview.querySelector('[data-choose]').addEventListener('click', function () { select.focus(); });
+        // A browser load failure uses the same unavailable state as a missing PHP catalogue image.
         preview.querySelector('[data-preview-image]').addEventListener('error', function (event) {
             event.target.dataset.failedSrc = event.target.getAttribute('src');
             event.target.hidden = true;
@@ -239,6 +264,8 @@
         updateSlot(key);
     });
 
+    // --- Outfit Builder — Top + Bottom / Dress mode and board actions ---
+    // Retain all slot selections while hiding inactive previews and excluding inactive fields from POST.
     function updateMode() {
         document.getElementById('styling-board').dataset.mode = mode;
         document.getElementById('board-mode-label').textContent = mode === 'dress' ? 'THE ONE-PIECE EDIT' : 'THE TWO-PIECE EDIT';
@@ -259,10 +286,12 @@
             updateSummary(mode === 'dress' ? 'Dress styling board.' : 'Top and bottom styling board.');
         });
     });
+    // Clear all modes, including hidden slots, so switching modes cannot revive a cleared selection.
     document.getElementById('outfit-clear').addEventListener('click', function () {
         Object.keys(labels).forEach(clearSlot);
         updateSummary('Styling board cleared.');
     });
+    // Recompute completion immediately before the ordinary POST; server checks remain authoritative.
     document.getElementById('outfit-form').addEventListener('submit', function (event) {
         updateSummary();
         if (document.getElementById('outfit-add').disabled) { event.preventDefault(); }

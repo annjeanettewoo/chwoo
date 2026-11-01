@@ -1,6 +1,5 @@
-/* ========================================
-   SITE HEADER
-   ======================================== */
+/* Shared Header — Navigation, feedback and responsive presentation for header.php. */
+/* Standard page header; the homepage overrides its surface below. */
 
 .site-header {
     position: sticky;
@@ -15,9 +14,7 @@
 }
 
 
-/* ========================================
-   ANNOUNCEMENT BAR
-   ======================================== */
+/* Announcement — Shared delivery message above the navigation row. */
 
 .announcement-bar {
     height: 42px;
@@ -38,9 +35,7 @@
 }
 
 
-/* ========================================
-   NAVBAR
-   ======================================== */
+/* Navigation — Brand logo and primary page links. */
 
 .navbar {
     width: 100%;
@@ -92,7 +87,7 @@
 }
 
 
-/* One underline treatment for shared navigation on every page. */
+/* Underline unifies hover, keyboard focus and the server-rendered active page. */
 .main-nav a::after,
 .nav-tools a::after {
     content: "";
@@ -121,7 +116,7 @@
 }
 
 
-/* Right navigation */
+/* Navigation tools — Currency label, account access and Shopping Bag link. */
 
 .nav-tools {
     margin-left: auto;
@@ -138,6 +133,7 @@
 }
 
 
+/* Keyboard focus remains visible on links, including the brand logo. */
 .navbar .main-nav a:focus-visible,
 .navbar .nav-tools a:focus-visible,
 .navbar .logo-link:focus-visible {
@@ -147,6 +143,7 @@
 
 /* Account access remains available when secondary tools collapse on mobile. */
 .navbar .nav-tools a.chwoo-account-link { display: block; white-space: nowrap; }
+/* Session feedback — main.js fades marked notices; reduced motion removes the fade animation. */
 .chwoo-auth-notice { position: fixed; z-index: 1100; bottom: 20px; left: 20px; right: 20px; width: fit-content; max-width: calc(100% - 40px); margin: 0 auto; padding: 14px 20px; text-align: center; background: #e5eef4; color: #4B2E1F; font-size: 14px; }
 [data-auto-dismiss] { transition: opacity 250ms ease; }
 [data-auto-dismiss].is-dismissing { opacity: 0; }
@@ -154,9 +151,7 @@
 @media (prefers-reduced-motion: reduce) { [data-auto-dismiss] { transition: none; } }
 
 
-/* ========================================
-   HOME PAGE NAVBAR OVER HERO
-   ======================================== */
+/* Homepage — Position transparent navigation over the hero. */
 
 .home-page .site-header {
     background-color: transparent;
@@ -179,7 +174,7 @@
 }
 
 
-/* White background appears on hover */
+/* Hover adds a warm-white surface over the hero for navigation readability. */
 
 .home-page .navbar:hover {
     background-color: var(--warm-white);
@@ -188,9 +183,7 @@
 }
 
 
-/* ========================================
-   RESPONSIVE HEADER
-   ======================================== */
+/* Compact spacing and secondary-tool visibility; account access stays visible via specificity. */
 
 @media (max-width: 1000px) {
 
@@ -240,7 +233,7 @@
 
 }
 
-/* Keep all shared links accessible when the full row no longer fits. */
+/* Wrap primary links onto their own row. More-specific selectors also override the 700px hide rule. */
 @media (max-width: 1350px) {
     .site-header .navbar, .shop-header .navbar { flex-wrap: wrap; row-gap: 16px; }
     .site-header .navbar .main-nav, .shop-header .navbar .main-nav {

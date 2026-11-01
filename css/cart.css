@@ -1,4 +1,5 @@
-/* Minimal session shopping bag — consistent with CHWOO Shop styling. */
+/* Shopping Bag — Full-page item list, order summary and responsive layout over Shop styles. */
+/* --- Shopping Bag — Desktop item-list and summary columns --- */
 .bag-page .bag-layout {
     display: grid;
     grid-template-columns: minmax(0, 1.7fr) minmax(270px, 1fr);
@@ -6,6 +7,7 @@
     align-items: start;
     padding: 60px 0 100px;
 }
+/* --- Shopping Bag — Variant rows, product photos and line details --- */
 .bag-page .bag-item {
     display: grid;
     grid-template-columns: 150px 1fr;
@@ -13,6 +15,7 @@
     border-top: 1px solid #ddd1c9;
     padding: 26px 0;
 }
+/* Product images retain the complete garment within a fixed display frame. */
 .bag-page .bag-item-image {
     display: flex; align-items: center; justify-content: center;
     width: 150px; height: 185px; background: #faf9f7; text-decoration: none;
@@ -27,6 +30,7 @@
     padding: 0; border: 0; background: transparent; color: #4b2e1f;
     text-decoration: underline; font-size: 12px; cursor: pointer;
 }
+/* --- Shopping Bag — Subtotal, delivery and estimated-total summary --- */
 .bag-page .bag-summary { background: #fffaf3; border: 1px solid #ddd3ca; padding: 28px; }
 .bag-page .bag-summary h2 { font-size: 20px; font-weight: 500; margin: 0 0 26px; }
 .bag-page .bag-total { display: flex; justify-content: space-between; align-items: baseline; gap: 15px; font-size: 13px; margin-bottom: 16px; }
@@ -38,15 +42,19 @@
     font-size: 13px; font-weight: 700; letter-spacing: .4px;
     text-decoration: none; padding: 9px 0;
 }
+/* --- Shopping Bag — Empty state and continue-shopping action --- */
 .bag-page .bag-empty { padding: 24px 0 40px; }
 .bag-page .bag-empty h2 { font-size: 28px; font-weight: 400; }
 .bag-page .bag-empty p { font-size: 14px; margin-bottom: 23px; }
 .bag-page .bag-summary .bag-shop-link { display: flex; align-items: center; justify-content: center; min-height: 48px; box-sizing: border-box; padding: 13px 18px; border: 1px solid #4b2e1f; margin-top: 12px; text-align: center; font-size: 12px; text-decoration: none; }
 .bag-page .bag-summary .bag-shop-link:hover { background: #f4efe7; }
+/* Summary links use the same focus colour as the shared quantity/removal controls in bag.css. */
 .bag-page .bag-summary a:focus-visible { outline: 2px solid #719dbb; outline-offset: 3px; }
 .bag-page .bag-item-details h2 { color: #719dbb; }
+/* Limit the shared controls' width within full-page item rows; stock warnings remain inline. */
 .bag-page .bag-item-details .chwoo-bag-controls { max-width: 250px; }
 .bag-page .bag-item-details [role="alert"] { color: #a54739; }
+/* --- Shopping Bag — Single-column mobile/tablet layout (up to 780px) --- */
 @media (max-width: 780px) {
     .bag-page .bag-layout { grid-template-columns: 1fr; gap: 30px; }
     .bag-page .bag-item { grid-template-columns: 110px 1fr; gap: 18px; }

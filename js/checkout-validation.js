@@ -1,9 +1,13 @@
-// Progressive enhancement. PHP repeats these checks for every submitted form.
+// Checkout Validation — Immediate delivery-field feedback and accessible submission checks.
+// PHP independently validates every submission; browser checks can be bypassed or unavailable.
 document.querySelectorAll('[data-checkout-form]').forEach(function (form) {
     var inputs = Array.from(form.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]), textarea'));
+    // Track interacted/server-invalid fields so typing does not expose errors in untouched fields.
     var touched = {};
     form.noValidate = true;
 
+    // --- Checkout Validation — Shared inline feedback ---
+    // Error IDs match PHP-rendered fields; return validity while updating text, visibility and ARIA state.
     function showError(input, error) {
         var output = document.getElementById(input.name + '-error');
         output.textContent = error;
@@ -12,6 +16,8 @@ document.querySelectorAll('[data-checkout-form]').forEach(function (form) {
         return !error;
     }
 
+    // --- Checkout Validation — Delivery field rules ---
+    // Each field check returns an error string or empty string; optional notes are handled by validate().
     function validateName(value) {
         if (value === '') { return 'Please enter your full name.'; }
         if (Array.from(value).length > 120 || /[\x00-\x1F\x7F]/.test(value)) {
@@ -42,6 +48,7 @@ document.querySelectorAll('[data-checkout-form]').forEach(function (form) {
         return /^[0-9]{6}$/.test(value) ? '' : 'Please enter a valid 6-digit Singapore postal code.';
     }
 
+    // Dispatch by field name, then reject control characters and update that field's feedback.
     function validate(input) {
         var value = input.value.trim();
         var error = '';
@@ -55,11 +62,14 @@ document.querySelectorAll('[data-checkout-form]').forEach(function (form) {
         return showError(input, error);
     }
 
+    // --- Checkout Validation — Blur, correction and submit interactions ---
+    // PHP-rendered errors count as touched so corrections update their feedback immediately.
     inputs.forEach(function (input) {
         touched[input.name] = input.getAttribute('aria-invalid') === 'true';
         input.addEventListener('blur', function () { touched[input.name] = true; validate(input); });
         input.addEventListener('input', function () { if (touched[input.name]) { validate(input); } });
     });
+    // Check every field before ordinary POST; focus the first error so keyboard users can correct it.
     form.addEventListener('submit', function (event) {
         var firstInvalid = null;
         inputs.forEach(function (input) {

@@ -1,7 +1,9 @@
 <?php
-// Rendered only inside the authenticated account page, never as a public endpoint.
+// My Account — Saved-address list, empty state and removal forms.
+// Render only inside the authenticated account page; this include rejects requests without its parent context.
 if (!isset($customerId, $section) || !chwooCurrentCustomer()) { http_response_code(404); exit; }
 $kind = 'address';
+// Creation and reuse are handled during checkout; this view lists existing addresses without editing them.
 $savedDetails = chwooSavedDetails($conn, $customerId, $kind);
 ?>
 <section class="account-section">

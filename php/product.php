@@ -1,6 +1,6 @@
 <?php
-// CHWOO Product Details | IE4727
-// Reads product information from MySQL and stores the shopping bag in a PHP session.
+// Product Details — Catalogue colours, size availability and validated Add to Bag submissions.
+// PHP owns product/variant identity and stock; JavaScript enhances the rendered selection controls.
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/bag.php';
 require_once __DIR__ . '/wishlist.php';
@@ -10,10 +10,12 @@ function e($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+// --- Product Details — Retrieve the active product and its colour/size variants ---
 $productId = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT, [
     'options' => ['min_range' => 1]
 ]);
 $product = null;
+// Key each colour by its stored ID; each entry holds its price/image, size-to-variant map and allowance.
 $colours = [];
 $availableSizes = ['XS', 'S', 'M', 'L'];
 if ($productId !== false && $productId !== null) {
@@ -52,12 +54,14 @@ if (!$product) {
         }
         if (in_array($row['size_code'], $availableSizes, true)) {
             $colours[$colourId]['variants'][$row['size_code']] = (int)$row['variant_id'];
+            // Quantities already in the bag consume this variant's allowance, without reserving database stock.
             $inBag = $_SESSION['chwoo_cart'][(int)$row['variant_id']]['quantity'] ?? 0;
             $colours[$colourId]['stock'][$row['size_code']] = max(0, (int)$row['stock_quantity'] - $inBag);
         }
     }
     $stmt->close();
 }
+// Include only populated size guidance; the interface does not invent missing fit measurements.
 $sizeGuidance = [];
 $stmt = $conn->prepare('SELECT size_code, guidance FROM size_guide ORDER BY sort_order');
 $stmt->execute();
@@ -66,6 +70,8 @@ while ($row = $result->fetch_assoc()) {
     if (!empty($row['guidance'])) { $sizeGuidance[] = $row; }
 }
 $stmt->close();
+// --- Product Details — Restore selection and one-time feedback ---
+// Query parameters retain valid catalogue selections after redirects and checkout product links.
 $error = '';
 $success = $_SESSION['chwoo_flash'] ?? '';
 unset($_SESSION['chwoo_flash']);
@@ -77,6 +83,8 @@ $requestedSize = $_GET['size'] ?? '';
 if (is_string($requestedSize) && isset($colours[$selectedColourId]['variants'][$requestedSize])) {
     $selectedSize = $requestedSize;
 }
+// --- Product Details — Validate Add to Bag ---
+// Submitted IDs and size labels are untrusted; verify CSRF and their relationship before changing the bag.
 $sizeError = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $product) {
     $action = $_POST['action'] ?? 'add';
@@ -97,7 +105,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $product) {
     } elseif (!$submittedColourId || !isset($colours[$submittedColourId])) {
         $error = 'Please select a valid colour for this product.';
     } else {
-        // Only the parent has an active flag in this schema.
+        // Resolve the stored variant ID and recheck stock for this active product/colour/size combination.
+        // Prices come from catalogue reads, never posted amounts; only the parent has an active flag.
         $stmt = $conn->prepare('SELECT v.variant_id, v.stock_quantity
                                 FROM product_variants AS v
                                 JOIN product_colours AS c ON c.colour_id = v.colour_id
@@ -118,11 +127,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $product) {
             } elseif ($existingQuantity >= (int)$variant['stock_quantity']) {
                 $error = 'Size ' . $selectedSize . ' is unavailable in ' . $colours[$submittedColourId]['name'] . '.';
             } else {
+                // Store identity and quantity only; the shared bag reloads current catalogue details and prices.
                 $_SESSION['chwoo_cart'][$variantId] = [
                     'variant_id' => $variantId,
                     'quantity' => $existingQuantity + 1
                 ];
                 $_SESSION['chwoo_flash'] = 'Added to your bag!';
+                // Redirect after POST to avoid duplicate additions on refresh and reopen the shared drawer.
                 $query = http_build_query(['id' => $productId, 'colour' => $submittedColourId, 'size' => $selectedSize, 'bag' => 'open']);
                 header('Location: product.php?' . $query, true, 303);
                 exit;
@@ -130,6 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $product) {
         }
     }
 }
+// --- Product Details — Prepare the rendered selection and drawer return URL ---
 $selectedColour = $colours[$selectedColourId] ?? null;
 $bagCount = $chwooBagCount;
 $bagNotice = $chwooBagMessage;
@@ -143,7 +155,7 @@ if ($product && $selectedColour) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $product ? e($product['product_name']) . ' | CHWOO' : 'Product not found | CHWOO' ?></title>
-    <!-- Keep the working shared Shop stylesheet: no edits needed. -->
+    <!-- Product Details — Shop layout followed by product-specific styles. -->
     <link rel="stylesheet" href="../css/header.css">
     <link rel="stylesheet" href="../css/shop.css">
     <link rel="stylesheet" href="../css/product.css?v=3">
@@ -171,7 +183,10 @@ if ($product && $selectedColour) {
         <?php else: ?>
             <div class="product-layout">
                 <section class="product-gallery" aria-label="Product image">
-                    <?php foreach ($colours as $colourId => $colour): ?>
+                    <?php
+                    // --- Product Details — Colour-specific image galleries ---
+                    // Render each gallery once; product-selection.js toggles the matching colour's visibility.
+                    foreach ($colours as $colourId => $colour): ?>
                         <div data-colour-gallery="<?= $colourId ?>" <?= $colourId !== $selectedColourId ? 'hidden' : '' ?>>
                             <div class="product-large-image">
                                 <?php if ($colour['image_url']): ?>
@@ -215,7 +230,10 @@ if ($product && $selectedColour) {
                             </div>
                             <fieldset class="product-colours">
                                 <legend class="visually-hidden">Choose a colour</legend>
-                                <?php foreach ($colours as $colourId => $colour): ?>
+                                <?php
+                                // --- Product Details — Colour swatches and browser display data ---
+                                // Escaped attributes provide each colour's price and remaining size quantities to JavaScript.
+                                foreach ($colours as $colourId => $colour): ?>
                                     <label class="colour-choice" title="<?= e($colour['name']) ?>">
                                         <input type="radio" name="colour" value="<?= $colourId ?>"
                                             <?= $colourId === $selectedColourId ? 'checked' : '' ?> required
@@ -245,7 +263,9 @@ if ($product && $selectedColour) {
                                 <?php endforeach; ?>
                             </fieldset>
 
-                            <?php $selectedQuantity = $selectedColour['stock'][$selectedSize] ?? 0;
+                            <?php
+                            // The PHP-rendered message/button use the same remaining allowance as JavaScript updates.
+                            $selectedQuantity = $selectedColour['stock'][$selectedSize] ?? 0;
                             $selectionAvailable = $selectedSize !== '' && $selectedQuantity > 0; ?>
                             <p id="stock-message" class="product-stock-message<?= $sizeError ? ' error' : ($selectedSize ? ($selectionAvailable ? ' success' : ' error') : '') ?>" role="status" aria-live="polite"><?= !$selectedSize ? 'Please choose a size.' : ($selectionAvailable ? 'Size ' . e($selectedSize) . ' · ' . $selectedQuantity . ' available' : 'Size ' . e($selectedSize) . ' is unavailable') ?></p>
                             <div class="product-action-row">
@@ -299,9 +319,7 @@ if ($product && $selectedColour) {
                 Shop
             </a>
 
-            <!-- ABOUT is on hold until a page is available. -->
 
-            <!-- Contact is on hold until a page is available. -->
 
             <a href="account.php?section=orders">
                 Orders

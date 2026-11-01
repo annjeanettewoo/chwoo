@@ -1,6 +1,7 @@
 <?php
-// Safe shared defaults. Put authorised machine-local settings in the gitignored
-// mail_config.local.php instead. See README.md for the Mercury setup.
+// Email Acknowledgement — Tracked local-mail defaults; chwooMailConfig() merges recognised local overrides.
+// Delivery stays disabled here; authorised machine-local settings belong in the ignored mail_config.local.php.
+// PHP mail() uses separately configured loopback SMTP; these values do not provision or verify a mailbox.
 return [
     'enabled' => false,
     'delivery_verified' => false, // Local verification metadata, not a delivery guarantee.

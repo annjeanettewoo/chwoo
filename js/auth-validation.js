@@ -1,10 +1,14 @@
-// Progressive enhancement: ordinary POST forms still work without JavaScript.
+// Login / Registration — Immediate field checks and accessible correction/submission feedback.
+// Ordinary POST forms remain usable without JavaScript; PHP independently validates credentials and registration data.
 document.querySelectorAll('[data-auth-form]').forEach(function (form) {
     var register = form.dataset.authForm === 'register';
     var inputs = Array.from(form.querySelectorAll('input:not([type="hidden"])'));
+    // Track interacted/server-invalid fields so untouched fields do not show errors while another field is edited.
     var touched = {};
     form.noValidate = true;
 
+    // --- Login / Registration — Password and confirmation checks ---
+    // Leave password text unchanged; registration adds a minimum length and matching-confirmation requirement.
     function message(input) {
         var value = input.type === 'password' ? input.value : input.value.trim();
         if (!value) {
@@ -21,7 +25,8 @@ document.querySelectorAll('[data-auth-form]').forEach(function (form) {
         return '';
     }
 
-    // Case Study style: named checks, pattern.test(), string checks and booleans.
+    // --- Login / Registration — Name and email validation ---
+    // Return validity after updating the shared inline error; whitespace rules match the server form checks.
     function validateName(input) {
         var value = input.value;
         var namePattern = /^\p{L}[\p{L}\p{M} .'’\-]*$/u;
@@ -51,6 +56,8 @@ document.querySelectorAll('[data-auth-form]').forEach(function (form) {
         return showError(input, message(input));
     }
 
+    // --- Login / Registration — Inline error state ---
+    // Error IDs match PHP-rendered controls; update both the visible message and aria-invalid.
     function showError(input, error) {
         var output = document.getElementById(input.name + '-error');
         output.textContent = error;
@@ -59,6 +66,8 @@ document.querySelectorAll('[data-auth-form]').forEach(function (form) {
         return !error;
     }
 
+    // --- Login / Registration — Field interaction and submission ---
+    // Recheck a touched confirmation when its password changes, without exposing errors in untouched fields.
     inputs.forEach(function (input) {
         touched[input.name] = input.getAttribute('aria-invalid') === 'true';
         input.addEventListener('blur', function () { touched[input.name] = true; validate(input); });
@@ -67,6 +76,7 @@ document.querySelectorAll('[data-auth-form]').forEach(function (form) {
             if (input.name === 'password' && register && touched.confirm_password) { validate(form.elements.confirm_password); }
         });
     });
+    // Validate every field before POST and focus the first failure; server validation remains authoritative.
     form.addEventListener('submit', function (event) {
         var firstInvalid = null;
         inputs.forEach(function (input) {

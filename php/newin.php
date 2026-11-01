@@ -1,17 +1,16 @@
 <?php
-// CHWOO New In | IE4727 Base Version
-// A dynamic catalogue page that reuses the ORIGINAL CHWOO HTML classes and CSS.
+// New In — Latest active products with default-colour photos and prices.
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/bag.php';
 
-// newin.php lives in chwoo/php, but public assets still live in chwoo/.
-// Resolve the project root from the script URL to preserve CSS and image paths.
+// This page is under php/; root-relative URLs keep links and public assets under the same installation.
 $baseUrl = rtrim(str_replace('\\', '/', dirname(dirname($_SERVER['SCRIPT_NAME']))), '/') . '/';
 
 function e($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+// --- New In — Retrieve the latest eight products ---
 // The current products table has no "added_at" date. Higher product IDs are
 // treated as newer. New In always shows only the latest eight active products;
 // legacy page query parameters do not change this selection.
@@ -26,6 +25,7 @@ $stmt = $conn->prepare(
 $stmt->execute();
 $result = $stmt->get_result();
 $newArrivals = [];
+// Collect default-colour display rows; an empty image URL selects the missing-photo placeholder.
 while ($product = $result->fetch_assoc()) {
     // Images must come from CHWOO's own images/ folder, never a user-supplied URL.
     $path = ltrim((string)$product['image_path'], '/\\');
@@ -36,7 +36,7 @@ while ($product = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-// Show the SAME shopping bag count used by php/product.php and php/cart.php.
+// Reuse the session bag count loaded by bag.php for the shared header.
 $bagCount = $chwooBagCount;
 ?>
 <!DOCTYPE html>
@@ -46,7 +46,7 @@ $bagCount = $chwooBagCount;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>New In | CHWOO Fashion Studio</title>
 
-    <!-- Original CHWOO stylesheets, same order as index.php. -->
+    <!-- New In — Shared homepage layout styles. -->
     <link rel="stylesheet" href="<?= e($baseUrl) ?>css/base.css">
     <link rel="stylesheet" href="<?= e($baseUrl) ?>css/header.css">
     <link rel="stylesheet" href="<?= e($baseUrl) ?>css/home.css">
@@ -57,11 +57,11 @@ $bagCount = $chwooBagCount;
 </head>
 <body class="newin-page">
 
-    <!-- ORIGINAL CHWOO HEADER -->
+    <!-- Shared navigation. -->
     <?php include __DIR__ . '/header.php'; ?>
 
     <main>
-        <!-- SAME heading, four-column grid, fonts and spacing as homepage New In. -->
+        <!-- New In — Product listing and full-catalogue link. -->
         <section class="new-in" id="new-in">
             <div class="section-heading">
                 <p>JUST LANDED</p>
@@ -93,13 +93,11 @@ $bagCount = $chwooBagCount;
         </section>
     </main>
 
-    <!-- ORIGINAL CHWOO FOOTER -->
+    <!-- Site footer. -->
     <footer>
         <div class="footer-logo">CHWOO</div>
         <div class="footer-links">
             <a href="<?= e($baseUrl) ?>php/shop.php">Shop</a>
-            <!-- ABOUT is on hold until a page is available. -->
-            <!-- Contact is on hold until a page is available. -->
             <a href="<?= e($baseUrl) ?>php/account.php?section=orders">Orders</a>
         </div>
         <p>&copy; 2026 CHWOO Fashion Studio</p>

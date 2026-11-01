@@ -1,5 +1,6 @@
 <?php
-// Small shared entry point for the standalone page and future account forms.
+// Authentication — Shared customer session, form token, identity and internal redirect helpers.
+// --- Authentication — Reuse the shopping session and CSRF token ---
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
@@ -11,16 +12,19 @@ function chwooAuthEscape($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+// Return cached session identity or null; this helper does not query account records or enforce page access.
 function chwooCurrentCustomer() {
     return $_SESSION['chwoo_customer'] ?? null;
 }
 
+// Resolve the installation root for pages served at the root or under php/.
 function chwooAuthRootUrl() {
     $directory = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
     return rtrim(basename($directory) === 'php' ? dirname($directory) : $directory, '/') . '/';
 }
 
-// Shared allowlist for ordinary form redirects; paths are relative to CHWOO.
+// --- Authentication — Internal shopping destinations ---
+// Shared by bag/wishlist forms: allow only CHWOO paths and recognised scalar query fields, otherwise use the fallback.
 function chwooReturnTo($value, $fallback = 'php/cart.php') {
     $allowed = ['index.php', 'php/shop.php', 'php/newin.php', 'php/product.php',
                 'php/cart.php', 'php/account.php', 'php/checkout.php', 'php/outfit.php'];
@@ -46,6 +50,8 @@ function chwooReturnTo($value, $fallback = 'php/cart.php') {
     return $parts['path'] . ($safeQuery ? '?' . http_build_query($safeQuery) : '');
 }
 
+// --- Authentication — Establish identity and carry shopping intent across sign-in ---
+// Store customer ID/name only; credentials stay out of session identity and existing bag contents are retained.
 function chwooAuthenticate($customer) {
     // Regeneration keeps the bag, shared CSRF token and pending wishlist intact.
     session_regenerate_id(true);
@@ -55,8 +61,9 @@ function chwooAuthenticate($customer) {
     ];
 }
 
+// Keep one-time form feedback through a redirect to login/registration; callers supply non-secret restored values.
 function chwooAuthRedirect($message, $errors = [], $old = [], $view = 'login') {
-    // Only explicitly supplied name/email values may be retained, never passwords.
+    // Authentication callers omit passwords from old values; the form renderer also leaves password fields blank.
     $_SESSION['chwoo_auth_feedback'] = [
         'message' => $message, 'errors' => $errors, 'old' => $old
     ];
@@ -65,6 +72,7 @@ function chwooAuthRedirect($message, $errors = [], $old = [], $view = 'login') {
     exit;
 }
 
+// Finish logout with a shared notice on Home rather than retaining form-validation feedback.
 function chwooAuthHome($message) {
     unset($_SESSION['chwoo_auth_feedback']);
     $_SESSION['chwoo_auth_notice'] = $message;
@@ -72,6 +80,7 @@ function chwooAuthHome($message) {
     exit;
 }
 
+// Checkout intent takes priority over order-history intent, then normal Account navigation; consume both flags once.
 function chwooAuthAccount($message) {
     unset($_SESSION['chwoo_auth_feedback']);
     $_SESSION['chwoo_auth_notice'] = $message;

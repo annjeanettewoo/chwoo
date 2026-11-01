@@ -1,10 +1,14 @@
 <?php
+// Order Confirmation — Owner-only saved purchase details, delivery snapshot and recorded totals.
+// This page reads an existing order; refreshing it neither creates a purchase nor triggers acknowledgement mail.
 require_once __DIR__ . '/auth.php';
 header('Cache-Control: no-store');
 $identity = chwooCurrentCustomer();
 if (!$identity) { header('Location: login.php', true, 303); exit; }
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/orders.php';
+// --- Order Confirmation — Validate the requested order and customer ownership ---
+// The lookup includes the session customer ID; invalid, absent or another customer's orders return 404.
 $orderId = is_string($_GET['id'] ?? null) ? filter_var($_GET['id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) : false;
 $order = $orderId ? chwooSavedOrder($conn, $orderId, (int)$identity['customer_id']) : null;
 if (!$order) { http_response_code(404); }
@@ -24,7 +28,10 @@ require_once __DIR__ . '/bag.php';
     <dl class="checkout-confirmation-status"><div><dt>Order status</dt><dd><?= chwooEscape($order['order_status']) ?></dd></div><div><dt>Order date</dt><dd><?= chwooEscape(date('j F Y, g:i A', strtotime($order['ordered_at']))) ?></dd></div><div><dt>Payment status</dt><dd><?= chwooEscape($order['payment_status']) ?></dd></div></dl>
     <div class="checkout-layout"><div>
         <section aria-labelledby="purchased-title"><div class="checkout-section-heading"><h2 id="purchased-title">Your purchased pieces</h2></div>
-        <?php foreach ($order['items'] as $item): ?>
+        <?php
+        // --- Order Confirmation — Render saved item snapshots ---
+        // Use purchased names/prices/variants rather than today's catalogue; a missing saved image path shows a placeholder.
+        foreach ($order['items'] as $item): ?>
         <?php $imageUrl = chwooImageUrl($item['product_image_path'] ?? '', $chwooRootUrl); ?>
         <article class="checkout-product">
             <div class="checkout-product-image"><?php if ($imageUrl): ?><img src="<?= chwooEscape($imageUrl) ?>" alt="<?= chwooEscape($item['product_name'] . ' in ' . $item['selected_colour']) ?>"><?php else: ?><span>Product photo unavailable</span><?php endif; ?></div>

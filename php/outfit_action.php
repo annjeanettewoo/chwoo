@@ -1,5 +1,6 @@
 <?php
-// Ordinary POST into the same variant-keyed session bag used by product.php.
+// Outfit Builder — Validate every selected piece before updating the shared session bag.
+// Adding an outfit checks current stock but neither reserves nor deducts inventory.
 require_once __DIR__ . '/auth.php';
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     http_response_code(405);
@@ -8,6 +9,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 }
 header('Cache-Control: no-store');
 
+// Accept scalar positive integer IDs only; arrays, zero and malformed identities return false.
 function chwooOutfitId($value) {
     return is_string($value) && preg_match('/^[1-9][0-9]*$/D', $value)
         ? filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) : false;
@@ -16,6 +18,7 @@ function chwooOutfitId($value) {
 $token = $_POST['form_token'] ?? '';
 $mode = $_POST['outfit_mode'] ?? '';
 $error = '';
+// Mode defines required categories and an allowlist of submitted identities, not trusted product details.
 $slots = $mode === 'dress' ? ['dress' => 'Dresses'] : ['top' => 'Tops', 'bottom' => 'Bottoms'];
 $allowed = ['form_token', 'outfit_mode'];
 $draft = ['mode' => $mode === 'dress' ? 'dress' : 'separates'];
@@ -26,6 +29,7 @@ foreach ($slots as $key => $category) {
         $draft[$name] = chwooOutfitId($_POST[$name] ?? null) ?: null;
     }
 }
+// Validate the request before database lookups; browser controls alone cannot enforce these rules.
 if (!is_string($token) || !hash_equals($_SESSION['chwoo_form_token'], $token)) {
     $error = 'Please refresh the page and try again. No outfit pieces were added.';
 } elseif (!in_array($mode, ['separates', 'dress'], true)) {
@@ -51,6 +55,7 @@ if ($error === '') {
         FROM product_variants v JOIN product_colours c ON c.colour_id = v.colour_id
         JOIN products p ON p.product_id = c.product_id WHERE v.variant_id = ?');
     $seen = [];
+    // Resolve each variant through its colour and product; posted identities must agree with that row.
     foreach ($slots as $key => $category) {
         $variantId = $draft[$key . '_variant'];
         if (isset($seen[$variantId])) {
@@ -73,17 +78,19 @@ if ($error === '') {
             $error = 'Please review your existing ' . $key . ' in the bag. No outfit pieces were added.';
             break;
         }
+        // Include units already in the bag when checking whether one more piece is available.
         $quantity = $existing['quantity'] ?? 0;
         if ($quantity >= (int)$variant['stock_quantity']) {
             $error = 'Your ' . $key . ' colour and size has no more stock available, including items already in your bag. Please choose another. No outfit pieces were added.';
             break;
         }
-        // Build a candidate locally. The session is written only after every piece passes.
+        // Build a candidate locally. The session bag is replaced only after every piece passes.
         $bag[$variantId] = ['variant_id' => $variantId, 'quantity' => $quantity + 1];
     }
     $statement->close();
     $conn->close();
 }
+// All-or-nothing session update, not a database transaction: a failed piece leaves the bag unchanged.
 if ($error === '') {
     $_SESSION['chwoo_cart'] = $bag;
     $_SESSION['chwoo_bag_flash'] = 'Your outfit was added to your bag!';
@@ -91,9 +98,10 @@ if ($error === '') {
 } else {
     $_SESSION['chwoo_outfit_error'] = $error;
 }
-// Retain scalar identities only; the next page checks them against the current catalogue.
+// A valid form token permits draft restoration even after selection errors; the page rechecks the catalogue.
 if (is_string($token) && hash_equals($_SESSION['chwoo_form_token'], $token)) {
     $_SESSION['chwoo_outfit_draft'] = $draft;
 }
+// POST/redirect/GET avoids resubmitting the form on refresh; success opens the shared bag drawer.
 header('Location: ' . chwooAuthRootUrl() . 'php/outfit.php' . ($error === '' ? '?bag=open' : ''), true, 303);
 exit;

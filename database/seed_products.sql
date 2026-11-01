@@ -1,10 +1,12 @@
--- Task 02B amended: 13 garments, 16 colours, 64 colour/size variants.
--- Based on the existing Task 02 seed; source export dated 30 October 2026 09:00.
--- Fresh installation only. No existing database is migrated or reset.
+-- Catalogue Seed — 13 garments, 16 colours and 64 colour/size variants for the initial shop.
+-- Catalogue provenance: source export dated 30 October 2026 09:00.
+-- Import schema.sql first, then this file into an empty catalogue; it does not migrate or reset data.
+-- Duplicate keys prevent rerunning these inserts over existing seed rows; no customer/order data is seeded.
 USE chwoo_db;
 SET NAMES utf8mb4;
 START TRANSACTION;
 
+-- Preserve parent identities and category labels used by catalogue filters and the Outfit Builder.
 INSERT INTO products
     (product_id, product_name, category, description, is_active)
 VALUES
@@ -31,7 +33,8 @@ VALUES
     ('L', NULL, 4);
 
 -- Colour IDs retain image numbers; parent IDs retain representative source IDs.
--- Task 03C: approved preview colour labels and display swatches; not supplier colour specifications.
+-- Approved preview colour labels and display swatches are not supplier colour specifications.
+-- Image paths are relative to the CHWOO installation root; is_default chooses the parent listing image.
 -- Image 6 retains its DEMONSTRATION price 48.00 (copied from image 7).
 -- Images 8/9 deliberately retain their different exported prices.
 INSERT INTO product_colours

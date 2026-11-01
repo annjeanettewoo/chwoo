@@ -1,9 +1,11 @@
 <?php
+// Payment — Reviewed purchase handoff and simulated confirmation; no payment gateway or real charge.
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/orders.php';
 require_once __DIR__ . '/order_mail.php';
 header('Cache-Control: no-store');
+// --- Payment — Validate the current customer ---
 $identity = chwooCurrentCustomer();
 if (!$identity) {
     $_SESSION['chwoo_checkout_login'] = true;
@@ -18,10 +20,12 @@ if (!$customerExists) {
     $_SESSION['chwoo_checkout_login'] = true;
     chwooAuthRedirect('', ['form' => 'Please sign in again before continuing.']);
 }
+// Return failures to editable review using one-time session feedback; keep the bag for correction/retry.
 function chwooPaymentReviewError($message) {
     $_SESSION['chwoo_order_error'] = $message;
     header('Location: checkout.php?step=review', true, 303); exit;
 }
+// --- Payment — Validate handoff or finalise a confirmed simulation ---
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $csrf = $_POST['form_token'] ?? '';
@@ -31,10 +35,11 @@ try {
             throw new RuntimeException('Please refresh the page and try again.');
         }
         if ($action === 'success') {
-            // Academic mock: this POST represents the assumed provider's success response.
-            // Reads the unsanitised session bag before bag.php can remove stale entries.
+            // Confirm Order simulates a successful provider response; the finaliser validates and commits it.
+            // Validate the original session bag before bag.php could remove invalid/stale selections.
             $result = chwooFinaliseOrder($conn, $customerId, $token);
             if (!$result['replayed']) {
+                // Only a newly committed purchase triggers mail; retries of a saved token do not resend.
                 // A committed purchase survives every acknowledgement failure.
                 try { chwooAcknowledgeOrder($conn, $result['order_id'], $customerId); }
                 catch (Throwable $mailError) { error_log('CHWOO acknowledgement: ' . $mailError->getMessage()); }
@@ -48,6 +53,7 @@ try {
             throw new RuntimeException('Please return to order review before continuing to payment.');
         }
         if ($action === 'review') {
+            // The reviewed token must still match this customer's bag, delivery details and catalogue signature.
             require_once __DIR__ . '/bag.php';
             $checkout = $_SESSION['chwoo_checkout'] ?? [];
             $details = chwooCheckoutValues($checkout['details'] ?? []);
@@ -59,6 +65,7 @@ try {
             foreach ($chwooBagItems as $item) {
                 if ($item['availability']) { throw new RuntimeException('Please resolve stock warnings before continuing to payment.'); }
             }
+            // Mark the handoff ready only after all review checks pass; this creates no order or stock deduction.
             $_SESSION['chwoo_purchase']['ready'] = true;
             unset($_SESSION['chwoo_payment_error'], $_SESSION['chwoo_order_error']);
         } elseif ($action === 'failure' && ($purchase['ready'] ?? false)
@@ -69,6 +76,8 @@ try {
         } else { throw new RuntimeException('Please use the payment controls.'); }
         header('Location: payment.php', true, 303); exit;
     }
+    // --- Payment — Display the current reviewed purchase ---
+    // A GET only displays the simulation; edits to quantities, prices or details require another review.
     require_once __DIR__ . '/bag.php';
     // History navigation after purchase is an empty checkout, not a review failure.
     if (!$chwooBagItems) {
@@ -89,6 +98,7 @@ try {
         if ($item['availability']) { throw new RuntimeException('Please resolve stock warnings before continuing to payment.'); }
     }
 } catch (Throwable $error) {
+    // Keep internal/database errors out of customer messages; expected validation errors explain the correction.
     if ($error instanceof mysqli_sql_exception || !($error instanceof RuntimeException)) {
         error_log('CHWOO order processing: ' . $error->getMessage());
         chwooPaymentReviewError('We could not process your order. Your bag is saved. Please try again later.');

@@ -1,19 +1,24 @@
-/* Checkout uses CHWOO's shared header, colours and ordinary form controls. */
+/* Checkout — Delivery form, order review, simulated payment and saved confirmation components. */
+/* --- Payment — Confirmation controls and return-to-review actions --- */
 .checkout-payment h2 { font-size: 24px; font-weight: normal; margin: 0 0 18px; }
 .checkout-payment p, .checkout-payment > a { font-size: 13px; }
 .checkout-payment-actions { display: grid; gap: 14px; margin: 30px 0; }
 .checkout-main .checkout-button-secondary { background: transparent; color: var(--brown); }
 .checkout-main .checkout-button-secondary:hover:not(:disabled) { background: var(--yellow); }
+/* --- Order Confirmation — Recorded order/payment statuses and purchase date --- */
 .checkout-confirmation-status { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 24px; margin: 0 0 36px; padding: 24px 0; border-top: 1px solid #ded6c9; border-bottom: 1px solid #ded6c9; }
 .checkout-confirmation-status dt { font-size: 11px; color: #745c4d; margin-bottom: 8px; }
 .checkout-confirmation-status dd { font-size: 14px; margin: 0; }
+/* --- Checkout — Optional saved-address selection and save checkbox --- */
 .checkout-save-option { display: flex; align-items: center; gap: 10px; font-size: 12px; margin-top: 24px; }
 .checkout-save-option input { width: 17px; height: 17px; accent-color: #4B2E1F; }
 .checkout-saved-choice select { display: block; width: 100%; min-width: 0; min-height: 49px; padding: 13px 14px; border: 1px solid #cbbfb3; border-radius: 0; color: var(--brown); background: #fff; margin: 0 0 16px; font: 14px/1.5 Arial,sans-serif; }
 .checkout-saved-choice select:focus { border-color: var(--brown); }
 .checkout-saved-choice label { display: block; margin-bottom: 8px; font-size: 12px; }
 .checkout-saved-choice { min-width: 0; padding: 20px; border: 1px solid #ded6c9; border-left: 3px solid var(--blue); background: #f4f0e7; margin-bottom: 26px; }
+/* Stack confirmation status entries on mobile without changing the recorded content. */
 @media(max-width:700px) { .checkout-confirmation-status { grid-template-columns:1fr; gap:18px; } }
+/* --- Checkout — Shared page shell, headings and purchase-step navigation --- */
 .checkout-page { background: var(--warm-white); }
 .checkout-main { max-width: 1440px; margin: auto; padding: 30px 5% 88px; line-height: 1.6; }
 .checkout-main a { color: var(--brown); text-underline-offset: 4px; }
@@ -30,12 +35,15 @@
 .checkout-progress [aria-current="step"] span { background: var(--blue); border-color: var(--blue); }
 .checkout-upcoming { color: #766a61; }
 .checkout-progress small { font-size: 10px; }
+/* --- Checkout — Desktop content and order-summary columns --- */
 .checkout-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1fr); gap: clamp(35px, 5vw, 76px); align-items: start; }
 .checkout-content { min-width: 0; }
 .checkout-section-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
 .checkout-section-heading h2, .checkout-summary h2, .checkout-empty h2 { font-size: 24px; font-weight: normal; margin: 0; line-height: 1.3; }
 .checkout-section-heading > a, .checkout-section-heading > span { font-size: 12px; }
 .checkout-help { font-size: 12px; color: #745c4d; margin: 0 0 24px; }
+/* --- Checkout — Delivery fields and validation feedback --- */
+/* PHP and JavaScript share aria-invalid/error visibility; field layout remains independent of validation source. */
 .checkout-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 23px 20px; }
 .checkout-field { min-width: 0; }
 .checkout-field-address, .checkout-field-notes, .checkout-field-full_name { grid-column: 1 / -1; }
@@ -47,11 +55,13 @@
 .checkout-field-error { font-size: 12px; color: #983829; margin: 7px 0 0; }
 .checkout-field-error[hidden] { display: none; }
 .checkout-alert { padding: 14px 18px; border-left: 3px solid #a13c2f; background: #fbefe7; color: #793024; font-size: 13px; margin: 0 0 24px; }
+/* --- Checkout — Edit/continue actions and disabled confirmation controls --- */
 .checkout-form-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; margin-top: 30px; }
 .checkout-form-actions > a { font-size: 12px; }
 .checkout-main .checkout-button { display: inline-block; padding: 15px 22px; border: 1px solid var(--brown); background: var(--brown); color: #fff; text-decoration: none; text-align: center; font: 12px/1.5 Arial, sans-serif; cursor: pointer; }
 .checkout-main .checkout-button:hover:not(:disabled) { background: #72503b; }
 .checkout-main .checkout-button:disabled { background: #e4ddd3; border-color: #d4c9bb; color: #65554a; cursor: not-allowed; }
+/* --- Checkout — Compact item summary, delivery and total amounts --- */
 .checkout-summary { background: #f4f0e7; padding: 30px; border-top: 3px solid var(--blue); }
 .checkout-summary h2 { font-size: 22px; }
 .checkout-summary h2 > span { font-size: 12px; white-space: nowrap; }
@@ -69,6 +79,8 @@
 .checkout-grand-total dd { font-weight: bold; }
 .checkout-shipping-note { font-size: 11px; color: #745c4d; margin: 15px 0 22px; }
 .checkout-summary > .checkout-help { margin-bottom: 0; }
+/* --- Order Review / Confirmation — Item images, details and line totals --- */
+/* Review adds shared bag controls; saved confirmation reuses the row presentation without those edit controls. */
 .checkout-product { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: 18px; border-bottom: 1px solid #ded6c9; padding: 24px 0; }
 .checkout-product-image { display: flex; align-items: center; justify-content: center; width: 110px; height: 147px; background: #fff; font-size: 11px; text-align: center; text-decoration: none; }
 .checkout-product-image img { width: 100%; height: 100%; object-fit: contain; }
@@ -81,21 +93,26 @@
 .checkout-line-total { margin: 0; text-align: right; font-size: 12px; }
 .checkout-line-total span { display: block; color: #745c4d; font-size: 10px; margin-bottom: 6px; }
 .checkout-line-total strong { white-space: nowrap; font-weight: normal; }
+/* --- Order Review / Confirmation — Delivery details --- */
 .checkout-delivery-review { padding-top: 30px; }
 .checkout-delivery-details { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 13px; }
 .checkout-delivery-details dt { font-size: 11px; color: #745c4d; margin-bottom: 5px; }
 .checkout-delivery-details dd { margin: 0; overflow-wrap: anywhere; }
 .checkout-delivery-details > div:nth-child(n+4) { grid-column: 1 / -1; }
+/* --- Order Review — Final checks before the payment handoff --- */
 .checkout-next { border-top: 1px solid #ded6c9; padding-top: 24px; }
 .checkout-next h3 { font-size: 18px; font-weight: normal; margin: 0; }
 .checkout-next p { font-size: 12px; color: #745c4d; margin: 12px 0 20px; }
 .checkout-next .checkout-button { width: 100%; }
 .checkout-next #payment-pending { font-size: 11px; margin-bottom: 0; }
+/* --- Checkout — Empty-bag state --- */
 .checkout-empty { max-width: 700px; margin: 30px auto; padding: clamp(40px, 7vw, 90px) 0; text-align: center; }
 .checkout-empty-accent { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%; background: var(--yellow); color: var(--brown); font-size: 32px; margin-bottom: 24px; }
 .checkout-empty h1 { font-size: clamp(34px, 4.5vw, 54px); font-weight: normal; letter-spacing: -1.5px; line-height: 1.15; margin: 0 0 20px; }
 .checkout-empty > p:not(.checkout-eyebrow):not(.checkout-alert) { font-size: 14px; color: #745c4d; margin: 0 0 30px; }
+/* --- Checkout — Keyboard focus and responsive layouts --- */
 .checkout-main :focus-visible { outline: 2px solid #4B2E1F; outline-offset: 4px; }
+/* Compact desktop/tablet: narrow the summary and move line totals below item details. */
 @media (max-width: 1000px) {
     .checkout-layout { grid-template-columns: minmax(0, 1fr) 320px; gap: 30px; }
     .checkout-summary { padding: 24px 20px; }
@@ -103,6 +120,7 @@
     .checkout-product-image { width: 85px; height: 115px; }
     .checkout-line-total { grid-column: 2; text-align: left; }
 }
+/* Mobile: stack summary/form columns and keep shared navigation links accessible. */
 @media (max-width: 800px) {
     .checkout-main { padding: 25px 24px 55px; }
     .checkout-layout { grid-template-columns: 1fr; gap: 36px; }
@@ -116,4 +134,5 @@
     .checkout-page .main-nav a { font-size: 11px; }
     .checkout-page .nav-tools { gap: 16px; }
 }
+/* Respect reduced-motion preferences for navigation underline transitions on these pages. */
 @media (prefers-reduced-motion: reduce) { .main-nav a::after, .nav-tools a::after { transition: none; } }

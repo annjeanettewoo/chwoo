@@ -1,4 +1,5 @@
-/* Product-detail hearts and account favourites; no listing-card controls. */
+/* Wishlist — Product Details heart state and Account saved-product cards/removal actions. */
+/* --- Wishlist — Shared POST button, saved state and keyboard focus --- */
 .chwoo-wishlist-form { margin: 0; }
 .chwoo-wishlist-button {
     display: inline-flex; align-items: center; justify-content: center;
@@ -10,8 +11,10 @@
 .chwoo-wishlist-button:hover { background: #BED1E1; }
 .chwoo-wishlist-button:focus-visible { outline: 3px solid #50768e; outline-offset: 3px; }
 .chwoo-wishlist-button:disabled { cursor: not-allowed; opacity: .5; }
+/* Product Details embeds the heart beside Add to Bag; catalogue listing grids have no wishlist controls. */
 .product-page .product-action-row .chwoo-wishlist-button { width: 100%; height: 55px; }
 .chwoo-wishlist-notice { padding: 14px 20px; margin: 20px 5%; background: #FFF3C2; color: #4B2E1F; font-size: 14px; }
+/* --- My Account Wishlist — Current product cards and unavailable-photo/product states --- */
 .account-wishlist-intro { font-size: 13px; color: #745c4d; }
 .account-wishlist-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px 20px; margin-top: 26px; }
 .account-wishlist-card { min-width: 0; display: flex; flex-direction: column; padding: 12px; background: #fff; border: 1px solid #eee7dd; }
@@ -22,6 +25,7 @@
 .account-wishlist-card h3 { margin: 14px 0 4px; font-size: 14px; font-weight: normal; }
 .account-wishlist-price, .account-wishlist-unavailable { margin: 4px 0 12px; font-size: 13px; }
 .account-wishlist-unavailable { color: #745c4d; }
+/* --- My Account Wishlist — Text removal controls aligned at each card's bottom --- */
 .chwoo-wishlist-remove { margin-top: auto; padding-top: 6px; }
 .chwoo-wishlist-remove .chwoo-wishlist-button {
     width: 100%; height: auto; min-height: 40px; padding: 9px 12px;
@@ -29,5 +33,6 @@
     font: 12px Arial, sans-serif;
 }
 .chwoo-wishlist-remove .chwoo-wishlist-button:hover { background: #f4efe7; border-color: #4B2E1F; }
+/* --- My Account Wishlist — Two-column tablet and single-column narrow-screen grids --- */
 @media (max-width: 1100px) { .account-wishlist-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 420px) { .account-wishlist-grid { grid-template-columns: 1fr; } }

@@ -1,6 +1,8 @@
 <?php
+// Login / Registration — Shared account form, restored non-secret values and inline validation feedback.
 require_once __DIR__ . '/auth.php';
 if (chwooCurrentCustomer()) {
+    // Do not render credential entry for an existing identity; complete any pending wishlist intent first.
     require_once __DIR__ . '/wishlist.php';
     if (isset($_SESSION['chwoo_pending_wishlist_product_id'])) {
         require_once __DIR__ . '/db.php';
@@ -14,6 +16,8 @@ if (!empty($_SESSION['chwoo_checkout_login']) && $chwooBagMessage !== '') {
     $_SESSION['chwoo_bag_flash'] = $chwooBagMessage;
 }
 header('Cache-Control: no-store');
+// --- Login / Registration — Consume form feedback and select the view ---
+// Switching views uses the same session; checkout/wishlist return intent remains available to the POST handler.
 $feedback = $_SESSION['chwoo_auth_feedback'] ?? [];
 unset($_SESSION['chwoo_auth_feedback']);
 $old = $feedback['old'] ?? [];
@@ -22,7 +26,8 @@ $register = ($_GET['view'] ?? '') === 'register';
 $title = $register ? 'Create an Account' : 'Sign In';
 $token = chwooAuthEscape($_SESSION['chwoo_form_token']);
 
-// The same inline error elements are used by PHP and the optional JavaScript.
+// --- Login / Registration — Accessible field rendering ---
+// PHP and JavaScript share error IDs/ARIA state; password inputs are always rendered empty after redirects.
 function chwooAuthField($name, $label, $type, $autocomplete, $attributes = '') {
     global $errors, $old, $register;
     $error = $errors[$name] ?? '';

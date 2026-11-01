@@ -1,4 +1,5 @@
--- Fresh installation only; import before seed_products.sql.
+-- Database Schema — Catalogue, inventory, customer data and saved purchases for CHWOO.
+-- Fresh installation only; import before seed_products.sql. No customer or catalogue rows are created here.
 -- Existing tables cause an error. This file does not upgrade or reset a database.
 CREATE DATABASE IF NOT EXISTS chwoo_db
     CHARACTER SET utf8mb4
@@ -7,6 +8,7 @@ CREATE DATABASE IF NOT EXISTS chwoo_db
 USE chwoo_db;
 SET NAMES utf8mb4;
 
+-- Catalogue parents identify garments and categories; colours own prices/images and variants own stock.
 CREATE TABLE products (
     product_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     product_name VARCHAR(120) NOT NULL,
@@ -29,6 +31,7 @@ CREATE TABLE size_guide (
 
 -- Catalogue images and prices belong to colours, never to size variants.
 -- Empty colour_name means unspecified, not an invented colour option.
+-- The generated unique key permits at most one default colour per product; it does not require one.
 CREATE TABLE product_colours (
     colour_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     product_id INT UNSIGNED NOT NULL,
@@ -49,7 +52,8 @@ CREATE TABLE product_colours (
     CONSTRAINT chk_colours_default CHECK (is_default IN (0, 1))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Sole inventory authority: one row per colour and shared size code.
+-- Sole inventory authority: one row per colour and shared size code, enforced by the selection key.
+-- A session bag does not reserve stock; order-processing PHP validates and deducts it transactionally.
 CREATE TABLE product_variants (
     variant_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     colour_id INT UNSIGNED NOT NULL,
@@ -65,7 +69,7 @@ CREATE TABLE product_variants (
     CONSTRAINT chk_variants_stock CHECK (stock_quantity >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- PHP must supply password_hash(); never store plaintext passwords.
+-- Customer identity and unique login email; PHP supplies password_hash(), never plaintext passwords.
 CREATE TABLE customers (
     customer_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     full_name VARCHAR(120) NOT NULL,
@@ -77,6 +81,8 @@ CREATE TABLE customers (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Optional customer-owned saved delivery addresses.
+-- PHP normalises address values and computes the fingerprint; uniqueness is scoped to that customer.
+-- Deleting a customer cascades to saved addresses, while order delivery snapshots remain separate.
 CREATE TABLE customer_addresses (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     customer_id INT UNSIGNED NOT NULL,
@@ -93,6 +99,7 @@ CREATE TABLE customer_addresses (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Product-level favourites: one product per customer, independent of colour/size.
+-- Customer/product deletion removes these links; the wishlist does not copy prices or reserve inventory.
 CREATE TABLE wishlist (
     wishlist_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     customer_id INT UNSIGNED NOT NULL,
@@ -109,6 +116,8 @@ CREATE TABLE wishlist (
 
 -- Checkout snapshots preserve recipient/contact details when accounts change.
 -- Payment is simulated; do not store card data. Currency is SGD throughout.
+-- Pending is the schema default; PHP sets purchase and acknowledgement statuses as processing progresses.
+-- Amount checks keep each row consistent; PHP calculates totals and coordinates order/items/stock updates.
 CREATE TABLE orders (
     order_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     -- Unique, server-generated token makes committed checkout retries idempotent.
@@ -141,6 +150,8 @@ CREATE TABLE orders (
 
 -- Name, size, colour and price are purchase snapshots, preserved by checkout PHP.
 -- Product identity follows variant -> colour -> product; no redundant product FK.
+-- Image paths are also saved; rendering need not substitute current catalogue text or prices.
+-- Foreign keys retain links to the saved order and exact variant; neither relationship cascades deletion.
 CREATE TABLE order_items (
     order_item_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     order_id INT UNSIGNED NOT NULL,

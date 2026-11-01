@@ -1,7 +1,11 @@
 <?php
-// Drawer POSTs resume visibly open; ordinary BAG/add-to-bag opens still animate.
+// Bag Drawer — Shared server-rendered variant lines, quantity controls, delivery progress and totals.
+// Uses bag.php display data; bag.js manages visibility/focus, not prices or cart mutations.
+// --- Bag Drawer — Restore the requested opening state ---
+// Quantity/removal POSTs use bag=updated to resume open; bag=open retains the normal opening animation.
 $chwooBagResume = ($_GET['bag'] ?? '') === 'updated';
 $chwooBagOpen = $chwooBagResume || ($_GET['bag'] ?? '') === 'open';
+// Totals come from the shared pricing policy; the $80 delivery-progress display caps its fill at 100%.
 ?>
 <div class="chwoo-bag-overlay<?= $chwooBagResume ? ' is-open is-restoring' : '' ?>" id="chwoo-bag-overlay" <?= $chwooBagResume ? '' : 'hidden' ?>></div>
 <aside class="chwoo-bag-drawer<?= $chwooBagResume ? ' is-open is-restoring' : '' ?>" id="chwoo-bag-drawer" role="dialog" aria-modal="true" aria-labelledby="chwoo-bag-title" aria-hidden="<?= $chwooBagResume ? 'false' : 'true' ?>" <?= $chwooBagResume ? '' : 'inert' ?> data-open="<?= $chwooBagOpen ? 'true' : 'false' ?>" data-resume="<?= $chwooBagResume ? 'true' : 'false' ?>">
@@ -12,7 +16,10 @@ $chwooBagOpen = $chwooBagResume || ($_GET['bag'] ?? '') === 'open';
     <div class="chwoo-bag-items">
         <?php if ($chwooBagMessage): ?><p class="chwoo-bag-message" role="status"><?= chwooEscape($chwooBagMessage) ?></p><?php endif; ?>
         <?php if (!$chwooBagItems): ?><p class="chwoo-bag-empty">Your bag is empty. Find something you love.</p><?php endif; ?>
-        <?php foreach ($chwooBagItems as $item): ?>
+        <?php
+        // --- Bag Drawer — Current variant lines and ordinary POST controls ---
+        // After an action, PHP renders fresh contents on the originating page; no client-side cart is maintained.
+        foreach ($chwooBagItems as $item): ?>
             <article class="chwoo-drawer-item">
                 <a class="chwoo-drawer-image" href="<?= chwooEscape($chwooRootUrl) ?>php/product.php?id=<?= $item['product_id'] ?>">
                     <?php if ($item['image_url']): ?><img src="<?= chwooEscape($item['image_url']) ?>" alt="<?= chwooEscape($item['name'] . ' in ' . $item['colour']) ?>"><?php else: ?><span>Photo coming soon</span><?php endif; ?>
@@ -20,7 +27,9 @@ $chwooBagOpen = $chwooBagResume || ($_GET['bag'] ?? '') === 'open';
                 <div>
                     <h3><?= chwooEscape($item['name']) ?></h3>
                     <p class="chwoo-bag-meta"><?= chwooEscape($item['colour']) ?> &middot; Size <?= chwooEscape($item['size']) ?></p>
-                    <?php chwooBagControls($item, $chwooReturnTo, 'drawer'); ?>
+                    <?php
+                    // Drawer context keeps the originating page and reopens its updated drawer after redirect.
+                    chwooBagControls($item, $chwooReturnTo, 'drawer'); ?>
                     <?php if ($item['availability']): ?><p class="chwoo-bag-warning" role="alert"><?= chwooEscape($item['availability']) ?></p><?php endif; ?>
                     <p class="chwoo-line-subtotal">SGD $<?= number_format($item['subtotal'], 2) ?></p>
                 </div>

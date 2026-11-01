@@ -1,5 +1,8 @@
 <?php
-// Delivery details only. Products, stock and totals always come from bag.php.
+// Checkout Validation — Normalise delivery fields and apply authoritative server-side input rules.
+// Used during checkout and payment/finalisation; client-side feedback cannot replace these checks.
+// --- Checkout Validation — Normalised field values ---
+// Return only known fields as bounded strings; array-shaped input becomes empty rather than a type error.
 function chwooCheckoutValues($source) {
     $limits = ['full_name' => 120, 'email' => 190, 'phone' => 30,
         'address' => 1000, 'postal_code' => 6, 'notes' => 500];
@@ -12,6 +15,9 @@ function chwooCheckoutValues($source) {
     return $values;
 }
 
+// --- Checkout Validation — Field-specific errors ---
+// Accept normalised values and return an error map keyed to form fields; an empty map means valid details.
+// Delivery is Singapore-specific, with a six-digit postal code; notes are optional but length-limited.
 function chwooCheckoutErrors($values) {
     $errors = [];
     if ($values['full_name'] === '') {
@@ -38,6 +44,7 @@ function chwooCheckoutErrors($values) {
     if (mb_strlen($values['notes'], 'UTF-8') > 500) {
         $errors['notes'] = 'Please use up to 500 characters for delivery notes.';
     }
+    // Reject invalid encoding and control characters even when the browser's field checks were bypassed.
     foreach ($values as $name => $value) {
         if (!mb_check_encoding($value, 'UTF-8') || preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', $value)) {
             $errors[$name] = 'Please check the text entered in this field.';

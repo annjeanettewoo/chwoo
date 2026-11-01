@@ -1,7 +1,11 @@
 <?php
+// Email Acknowledgement — Saved-order content, configured local transport and acknowledgement diagnostics.
+// payment.php calls this after a new order commits; confirmation refreshes and token replays do not call it again.
 require_once __DIR__ . '/orders.php';
 require_once __DIR__ . '/order_mail_template.php';
 
+// --- Email Acknowledgement — Configuration and order-history link ---
+// Merge recognised keys from the optional machine-local override over tracked, delivery-disabled defaults.
 function chwooMailConfig($useLocal = true) {
     $config = require __DIR__ . '/mail_config.php';
     $localPath = __DIR__ . '/mail_config.local.php';
@@ -12,6 +16,7 @@ function chwooMailConfig($useLocal = true) {
     }
     return $config;
 }
+// Use the configured absolute site URL, not request headers; reject credentials, control characters and query/fragment data.
 function chwooOrderHistoryUrl($config = []) {
     $siteUrl = $config['site_url'] ?? 'http://localhost:8000/chwoo';
     $parts = is_string($siteUrl) ? parse_url($siteUrl) : false;
@@ -23,6 +28,8 @@ function chwooOrderHistoryUrl($config = []) {
     }
     return rtrim($siteUrl, '/') . '/php/account.php?section=orders';
 }
+// --- Email Acknowledgement — Plain-text purchase summary ---
+// Build item/price, delivery and total details from saved snapshots, with a sign-in-protected order-history link.
 function chwooAcknowledgementText($order, $config = []) {
     $lines = ['CHWOO Fashion Studio', 'Order #' . $order['order_id'],
         'Hello ' . $order['recipient_name'] . ',', '',
@@ -50,9 +57,12 @@ function chwooAcknowledgementText($order, $config = []) {
     $lines[] = 'Thank you for choosing CHWOO Fashion Studio.';
     return implode("\r\n", $lines) . "\r\n";
 }
+// --- Email Acknowledgement — Local transport submission ---
+// Return Prepared when disabled, Accepted for transport acceptance, or Failed for rejection/error.
+// Accepted does not establish inbox delivery. The checkout contact email is never chosen as the recipient.
 function chwooLocalAcknowledgement($subject, $body, $config, $transport = null, $html = null) {
     if (($config['enabled'] ?? false) !== true) { return 'Prepared'; }
-    // Only explicitly configured local mailboxes; no visitor-controlled recipient.
+    // Permit only configured @localhost mailboxes and loopback PHP SMTP with no sendmail command.
     $localMailbox = '/\A[A-Za-z0-9._+-]+@localhost\z/Di';
     if (!is_string($config['recipient'] ?? null) || !is_string($config['sender'] ?? null)
         || !preg_match($localMailbox, $config['recipient']) || !preg_match($localMailbox, $config['sender'])
@@ -61,6 +71,7 @@ function chwooLocalAcknowledgement($subject, $body, $config, $transport = null, 
     $headers = 'From: ' . $config['sender'] . "\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8";
     try {
         if ($html !== null) {
+            // Send both text and HTML alternatives using a fresh MIME boundary and quoted-printable encoding.
             $boundary = 'chwoo_' . bin2hex(random_bytes(24));
             $headers = 'From: ' . $config['sender'] . "\r\nMIME-Version: 1.0\r\n"
                 . 'Content-Type: multipart/alternative; boundary="' . $boundary . '"';
@@ -71,23 +82,28 @@ function chwooLocalAcknowledgement($subject, $body, $config, $transport = null, 
                 . "Content-Transfer-Encoding: quoted-printable\r\n\r\n" . quoted_printable_encode($html) . "\r\n"
                 . '--' . $boundary . "--\r\n";
         }
-        // The optional callable is used by CLI tests without contacting any mailbox.
+        // An injected transport supports isolated checks; normal delivery uses PHP mail() with the fixed recipient.
         $accepted = $transport ? $transport($config['recipient'], $subject, $body, $headers)
             : @mail($config['recipient'], $subject, $body, $headers);
         return $accepted ? 'Accepted' : 'Failed';
     } catch (Throwable $error) { return 'Failed'; }
 }
+// --- Email Acknowledgement — Saved-order eligibility and result recording ---
+// Load owner-scoped Paid/Confirmed snapshots; do not reattempt orders already marked Accepted or Failed.
+// Normal payment retries skip this function, including orders left Prepared when transport was disabled.
 function chwooAcknowledgeOrder($conn, $orderId, $customerId, $config = null, $transport = null) {
     $order = chwooSavedOrder($conn, $orderId, $customerId);
     if (!$order || $order['acknowledgement_status'] !== 'Prepared'
         || $order['payment_status'] !== 'Paid' || $order['order_status'] !== 'Confirmed') { return; }
-    // A process-only test setting guarantees fixture purchases cannot send mail.
+    // The process-only prepare flag disables transport for isolated runs without changing stored order details.
     try {
         $config = $config ?? chwooMailConfig();
         if (getenv('CHWOO_MAIL_PREPARE_ONLY') === '1') { $config['enabled'] = false; }
         $status = chwooLocalAcknowledgement('CHWOO order #' . (int)$orderId,
             chwooAcknowledgementText($order, $config), $config, $transport, chwooAcknowledgementHtml($order, $config));
     } catch (Throwable $error) { $status = 'Failed'; }
+    // Record local acceptance time only for Accepted; these diagnostics are not proof of recipient delivery.
+    // This runs after purchase commit, so transport failures do not undo the saved order or stock deduction.
     $stmt = $conn->prepare("UPDATE orders SET acknowledgement_status = ?,
         acknowledgement_sent_at = CASE WHEN ? = 'Accepted' THEN CURRENT_TIMESTAMP ELSE NULL END
         WHERE order_id = ? AND customer_id = ? AND acknowledgement_status = 'Prepared'");

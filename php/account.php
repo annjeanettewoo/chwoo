@@ -1,6 +1,8 @@
 <?php
+// My Account — Authenticated profile, recent/full order history, wishlist and saved-address views.
 require_once __DIR__ . '/auth.php';
 header('Cache-Control: no-store');
+// --- My Account — Require a session identity and current customer record ---
 $identity = chwooCurrentCustomer();
 if (!$identity) {
     // A guest following Orders should reach order history after signing in.
@@ -23,12 +25,15 @@ if (!$customer) {
     session_regenerate_id(true);
     chwooAuthRedirect('', ['form' => 'Please log in again.']);
 }
+// --- My Account — Allowlisted navigation and customer-scoped data ---
+// Sections select views, not record ownership; every account/order lookup uses the session-derived customer ID.
 $sections = ['dashboard' => 'Dashboard', 'orders' => 'Orders', 'wishlist' => 'Wishlist',
              'details' => 'Account Details', 'addresses' => 'Addresses', 'cards' => 'Saved Cards'];
 $section = $_GET['section'] ?? 'dashboard';
 if (!is_string($section) || !isset($sections[$section])) { $section = 'dashboard'; }
 $orders = [];
 if (in_array($section, ['dashboard', 'orders'], true)) {
+    // Dashboard limits to five recent purchases; Orders lists all saved purchases for this customer.
     $sql = 'SELECT order_id, ordered_at, total_amount, order_status FROM orders
             WHERE customer_id = ? ORDER BY ordered_at DESC, order_id DESC';
     if ($section === 'dashboard') { $sql .= ' LIMIT 5'; }
@@ -43,6 +48,7 @@ require_once __DIR__ . '/wishlist.php';
 $wishlistItems = [];
 $wishlistError = '';
 if ($section === 'wishlist') {
+    // Read persisted product favourites only for this section; a failed read is not an empty wishlist.
     try {
         $wishlistItems = chwooWishlistItems($conn, $customerId);
     } catch (mysqli_sql_exception $exception) {
@@ -110,7 +116,10 @@ $firstName = explode(' ', $customer['full_name'])[0];
             <div class="account-empty"><span class="account-empty-mark" aria-hidden="true">&#10033;</span><h3>You haven't placed any orders yet.</h3><p>Every favourite starts with a little browse.</p><a class="account-text-link" href="shop.php">Find something you love &rarr;</a></div>
             <?php else: ?>
             <div class="account-orders"><table><caption class="account-sr-only">Your <?= $section === 'dashboard' ? 'five most recent orders' : 'order history' ?></caption><thead><tr><th scope="col">Order</th><th scope="col">Date</th><th scope="col">Total</th><th scope="col">Status</th><th scope="col">Details</th></tr></thead><tbody>
-                <?php foreach ($orders as $order): ?>
+                <?php
+                // --- My Account — Saved order-history rows ---
+                // Links open the saved confirmation, whose lookup checks ownership again.
+                foreach ($orders as $order): ?>
                 <tr><td>#<?= (int)$order['order_id'] ?></td><td><?= chwooAuthEscape(date('j M Y', strtotime($order['ordered_at']))) ?></td><td>SGD $<?= number_format((float)$order['total_amount'], 2) ?></td><td><span class="account-order-status"><?= chwooAuthEscape($order['order_status']) ?></span></td><td><a class="account-text-link" href="order_confirmation.php?id=<?= (int)$order['order_id'] ?>" aria-label="View details of order <?= (int)$order['order_id'] ?>">View details</a></td></tr>
                 <?php endforeach; ?>
             </tbody></table></div>
@@ -128,6 +137,8 @@ $firstName = explode(' ', $customer['full_name'])[0];
             <div class="account-wishlist-grid">
                 <?php foreach ($wishlistItems as $item): ?>
                 <?php
+                // --- My Account — Current wishlist product cards ---
+                // Inactive/no-colour products remain removable; availability here does not promise size stock.
                 $imageUrl = chwooImageUrl((string)($item['image_path'] ?? ''), $chwooRootUrl);
                 $available = (int)$item['is_active'] === 1 && $item['colour_id'] !== null;
                 ?>

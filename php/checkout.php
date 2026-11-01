@@ -1,10 +1,12 @@
 <?php
-// Prepare and review a bag; optional address saving is the only database write here.
+// Checkout — Customer delivery details, field feedback and editable order review.
+// Prepares session purchase state; optional address saving is the only database write on this page.
 require_once __DIR__ . '/bag.php';
 require_once __DIR__ . '/checkout_helpers.php';
 require_once __DIR__ . '/orders.php';
 require_once __DIR__ . '/saved_details.php';
 header('Cache-Control: no-store');
+// --- Checkout — Empty-bag and customer guards ---
 // An empty bag has no active review/payment state or checkout errors to resume.
 if (!$chwooBagItems) {
     unset($_SESSION['chwoo_checkout_feedback'], $_SESSION['chwoo_purchase'],
@@ -36,10 +38,13 @@ if ($identity) {
         chwooAuthRedirect('', ['form' => 'Please log in again to continue to checkout.']);
     }
 }
+// Delivery details belong to the current customer; do not reuse another account's checkout state.
 if (isset($_SESSION['chwoo_checkout'])
     && ($_SESSION['chwoo_checkout']['customer_id'] ?? null) !== ($identity['customer_id'] ?? null)) {
     unset($_SESSION['chwoo_checkout'], $_SESSION['chwoo_checkout_feedback']);
 }
+// --- Checkout — Restore delivery values and process submitted details ---
+// chwoo_checkout holds validated details; feedback separately retains attempted values and field errors.
 $saved = $_SESSION['chwoo_checkout']['details'] ?? [];
 $values = chwooCheckoutValues($saved ?: [
     'full_name' => $customer['full_name'] ?? '', 'email' => $customer['email'] ?? ''
@@ -51,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!is_string($token) || !hash_equals($_SESSION['chwoo_form_token'], $token)) {
         $errors['form'] = 'Please refresh the page and try again.';
     } elseif (($_POST['action'] ?? '') === 'use_address' && $identity) {
+        // Saved addresses are ownership-scoped and only prefill the form; submission still requires validation.
         $id = is_string($_POST['address_id'] ?? null) ? filter_var($_POST['address_id'], FILTER_VALIDATE_INT) : false;
         $address = $id ? (chwooSavedDetails($conn, $customerId, 'address', $id)[0] ?? null) : null;
         if ($address) {
@@ -62,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!$chwooBagItems || !$identity) {
         $errors['form'] = 'Your bag is empty. Please add a product before continuing.';
     } else {
+        // Browser checks are bypassable; validate normalised POST data again before saving checkout state.
         $values = chwooCheckoutValues($_POST);
         $errors = chwooCheckoutErrors($values);
         if (!$errors && ($_POST['save_address'] ?? '') === '1') {
@@ -69,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             catch (mysqli_sql_exception $error) { $errors['form'] = 'We could not save this address. Please try again or continue with the save option unchecked.'; }
         }
         if (!$errors) {
+            // Keep only delivery details here; bag identities, catalogue prices and totals are resolved separately.
             $_SESSION['chwoo_checkout'] = ['customer_id' => $customerId, 'details' => $values];
             unset($_SESSION['chwoo_checkout_feedback'], $_SESSION['chwoo_order_error'], $_SESSION['chwoo_payment_error']);
             // Preserve availability warnings removed by the canonical bag loader.
@@ -82,6 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Location: checkout.php', true, 303);
     exit;
 }
+// --- Checkout — Consume redirect feedback and prepare review ---
 $feedback = $_SESSION['chwoo_checkout_feedback'] ?? [];
 unset($_SESSION['chwoo_checkout_feedback']);
 if ($feedback) {
@@ -97,6 +106,8 @@ if ($chwooBagItems && $step === 'review' && (!$saved || chwooCheckoutErrors(chwo
 // Consume payment-to-review feedback once, after any canonical review redirect.
 $orderError = $_SESSION['chwoo_order_error'] ?? '';
 unset($_SESSION['chwoo_order_error']);
+// Review can prepare a purchase token only for a nonempty bag without current stock warnings.
+// chwooPreparePurchase ties the token to a signature of these items, prices, totals and delivery details.
 $stockErrors = array_filter($chwooBagItems, function ($item) { return $item['availability'] !== ''; });
 $purchaseToken = $step === 'review' && $chwooBagItems && !$stockErrors
     ? chwooPreparePurchase($chwooBagItems, $values, $customerId) : '';
@@ -104,6 +115,8 @@ $drawerOpen = in_array($_GET['bag'] ?? '', ['open', 'updated'], true);
 $notice = $drawerOpen ? '' : $chwooBagMessage;
 if (!$drawerOpen) { $chwooBagMessage = ''; }
 
+// --- Checkout — Delivery form rendering ---
+// Render escaped restored values and field-specific errors; PHP and JavaScript share the error IDs/ARIA state.
 function chwooCheckoutField($name, $label, $type, $autocomplete, $attributes = '', $optional = false) {
     global $values, $errors;
     $error = $errors[$name] ?? '';
@@ -197,7 +210,10 @@ function chwooCheckoutField($name, $label, $type, $autocomplete, $attributes = '
             <section aria-labelledby="review-products-title" id="review-products">
                 <div class="checkout-section-heading"><h2 id="review-products-title">Your selected pieces</h2><a href="cart.php?from=checkout">Edit bag</a></div>
                 <p class="checkout-help">Check each colour, size and quantity. To change a colour or size, remove that selection and choose its replacement on the product page. Then return through Checkout in your bag.</p>
-                <?php foreach ($chwooBagItems as $item): ?>
+                <?php
+                // --- Checkout — Editable product review ---
+                // Use current bag data; product links retain colour/size and quantity forms return to review.
+                foreach ($chwooBagItems as $item): ?>
                 <?php $productUrl = 'product.php?' . http_build_query(['id' => $item['product_id'], 'colour' => $item['colour_id'], 'size' => $item['size']]); ?>
                 <article class="checkout-product">
                     <a class="checkout-product-image" href="<?= chwooEscape($productUrl) ?>">

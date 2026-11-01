@@ -1,5 +1,7 @@
 <?php
-// Table layout and inline CSS for mail clients; no remote assets or images.
+// Email Acknowledgement — HTML purchase summary using saved order and item snapshots.
+// Table layout and inline CSS support mail clients without remote assets or images.
+// Return buffered HTML for the multipart message; this function does not send mail or emit page output.
 function chwooAcknowledgementHtml($order, $config = []) {
     $escape = function ($value) { return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); };
     $historyUrl = chwooOrderHistoryUrl($config);
@@ -17,7 +19,10 @@ function chwooAcknowledgementHtml($order, $config = []) {
         <table width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:12px;line-height:1.6;">
             <caption style="text-align:left;padding-bottom:12px;font-family:Georgia,serif;font-size:22px;">Your purchased pieces</caption>
             <thead><tr style="background-color:#BED1E1;"><th scope="col" align="left" style="padding:10px 8px;">Piece</th><th scope="col" align="center" style="padding:10px 4px;">Qty</th><th scope="col" align="right" style="padding:10px 4px;">Unit price</th><th scope="col" align="right" style="padding:10px 8px;">Line total</th></tr></thead>
-            <tbody><?php foreach ($order['items'] as $item): ?>
+            <tbody><?php
+            // --- Email Acknowledgement — Purchased item snapshots ---
+            // Escape saved customer/catalogue text and calculate line totals from the saved unit prices.
+            foreach ($order['items'] as $item): ?>
             <tr><td style="padding:14px 8px;border-bottom:1px solid #BED1E1;overflow-wrap:anywhere;"><strong><?= $escape($item['product_name']) ?></strong><br>Colour: <?= $escape($item['selected_colour']) ?><br>Size: <?= $escape($item['selected_size']) ?></td><td align="center" style="padding:14px 4px;border-bottom:1px solid #BED1E1;vertical-align:top;"><?= (int)$item['quantity'] ?></td><td align="right" style="padding:14px 4px;border-bottom:1px solid #BED1E1;vertical-align:top;">SGD&nbsp;$<?= $escape($item['unit_price']) ?></td><td align="right" style="padding:14px 8px;border-bottom:1px solid #BED1E1;vertical-align:top;">SGD&nbsp;$<?= chwooMoney(chwooPriceCents($item['unit_price']) * (int)$item['quantity']) ?></td></tr>
             <?php endforeach; ?></tbody>
         </table>

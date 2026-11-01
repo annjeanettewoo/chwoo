@@ -1,3 +1,4 @@
+/* Homepage — Hero, New In preview and brand introduction; New In reuses the product grid. */
 /* ========================================
    HERO
    ======================================== */
@@ -124,9 +125,7 @@
 }
 
 
-/* ========================================
-   NEW IN
-   ======================================== */
+/* --- Homepage / New In — Product listing heading and card grid --- */
 
 .new-in {
     padding: 90px 5% 100px;
@@ -169,6 +168,7 @@
 }
 
 
+/* Use a consistent 3:4 image frame for the homepage preview and New In listing. */
 .product-grid .product-card img {
     aspect-ratio: 3 / 4;
 
@@ -267,6 +267,7 @@
     }
 
 
+    /* Homepage / New In — Reduce the product grid to two columns on narrower screens. */
     .product-grid {
         grid-template-columns: repeat(2, 1fr);
 

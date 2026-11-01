@@ -1,11 +1,11 @@
-/* CHWOO Product Details - restores the original product page layout.
-   Loaded after shop.css. No modifications to shared files. */
+/* Product Details — Colour galleries, selection controls, availability and product information.
+   Loaded after shop.css for product-page layout and component overrides. */
 
-/* Maintain the Shop's header, navigation and original page width. */
+/* --- Product Details — Content width and breadcrumb spacing --- */
 .product-page .product-main { width: 90%; max-width: 1860px; margin: 0 auto; }
 .product-page .breadcrumb { margin: 25px 0 34px; }
 
-/* Side-by-side image gallery and shopping options, like the original mock-up. */
+/* --- Product Details — Side-by-side gallery and selection panel --- */
 .product-page .product-layout {
     display: grid;
     grid-template-columns: minmax(0, 1.14fr) minmax(0, .86fr);
@@ -19,6 +19,7 @@
     display: flex; justify-content: center; align-items: center;
     background: #fff;
 }
+/* Contain the complete image in the gallery frame without cropping the garment. */
 .product-page .product-large-image img {
     display: block; width: 100%; height: 100%;
     object-fit: contain; object-position: center;
@@ -36,7 +37,7 @@
 .product-page .product-thumbnail.selected { border-color: #9b857b; }
 .product-page .product-thumbnail img { width: 100%; height: 100%; object-fit: contain; }
 
-/* Product title and pricing, aligned with the top of the image area. */
+/* --- Product Details — Product name and selected-colour price --- */
 .product-page .product-information { min-width: 0; padding-top: 8px; }
 .product-page .product-eyebrow {
     margin: 0 0 14px; font-size: 12px; font-weight: 700; letter-spacing: 3.3px;
@@ -48,7 +49,7 @@
 }
 .product-page .product-price { font-size: 18px; margin: 0 0 35px; }
 
-/* Original colour swatches and selected colour name. */
+/* --- Product Details — Colour swatches, sizes and availability feedback --- */
 .product-page .product-colour-header,
 .product-page .product-size-header {
     display: flex; justify-content: space-between; align-items: center;
@@ -86,6 +87,7 @@
 .product-page .size-choice input:checked + span { background: #fff3c2; border-color: #4B2E1F; }
 .product-page .size-choice input:focus-visible + span { outline: 2px solid #4B2E1F; outline-offset: 3px; }
 .product-page .size-choice:hover span { border-color: #4B2E1F; }
+/* Unavailable sizes remain selectable for feedback; PHP and JavaScript block invalid additions. */
 .product-page .size-choice.is-unavailable input:not(:checked) + span {
     color: #aaa;
     background: linear-gradient(155deg, transparent 49.5%, #d8d1cb 50%, transparent 50.5%);
@@ -96,7 +98,7 @@
 .product-page .product-stock-message.success { color: #43704e; }
 .product-page .add-to-bag:disabled { opacity: .45; cursor: not-allowed; }
 
-/* Brown add-to-bag bar and bordered heart button. */
+/* --- Product Details — Add to Bag, wishlist action and submission messages --- */
 .product-page .product-action-row { display: grid; grid-template-columns: minmax(0,1fr) 61px; gap: 10px; margin: 30px 0 35px; }
 .product-page .add-to-bag {
     display: block; width: 100%; height: 55px; border: 1px solid #4B2E1F;
@@ -118,7 +120,7 @@
 .product-page .product-message a { font-weight: 700; }
 .product-page .product-sold-out { font-weight: bold; margin-bottom: 30px; }
 
-/* Three collapsible information rows exactly where they appear in the mock-up. */
+/* --- Product Details — Description, Size & Fit and Shipping & Returns panels --- */
 .product-page .product-accordions { border-top: 1px solid #8e7264; }
 .product-page .product-accordions details { border-bottom: 1px solid #d5c8c1; }
 .product-page .product-accordions summary {
@@ -137,11 +139,13 @@
     white-space: nowrap; border: 0;
 }
 
+/* --- Product Details — Compact desktop/tablet gallery sizing (up to 980px) --- */
 @media (max-width: 980px) {
     .product-page .product-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 30px; }
     .product-page .product-large-image { height: 470px; }
     .product-page .product-information h1 { font-size: 38px; }
 }
+/* --- Product Details — Stack gallery above product controls on mobile (up to 740px) --- */
 @media (max-width: 740px) {
     .product-page .product-layout { grid-template-columns: 1fr; gap: 25px; }
     .product-page .product-large-image { height: 440px; }

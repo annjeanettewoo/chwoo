@@ -1,6 +1,4 @@
-/* ========================================
-   CHWOO GLOBAL STYLES
-   ======================================== */
+/* Global Styles — Shared CHWOO palette, base typography and catalogue card defaults. */
 
 :root {
     --blue: #BED1E1;
@@ -11,6 +9,7 @@
 }
 
 
+/* Base sizing and document presentation; page styles supply their own layouts. */
 * {
     box-sizing: border-box;
 }
@@ -32,9 +31,7 @@ body {
 }
 
 
-/* ========================================
-   SHARED PRODUCT STYLING
-   ======================================== */
+/* Product cards — Image hover, product names and price typography shared by catalogue pages. */
 
 .product-card img {
     width: 100%;

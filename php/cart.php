@@ -1,14 +1,16 @@
 <?php
-// CHWOO | Basic shopping bag stored in a PHP session.
-// Database orders will be created in a later checkout step.
+// Shopping Bag — Full-page variant lines, quantity/removal controls and estimated order totals.
+// bag.php resolves current catalogue data and pricing; this view does not create orders or deduct stock.
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/bag.php';
 function e($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
+// --- Shopping Bag — Display data and checkout return context ---
 $bagItems = $chwooBagItems;
 $bagCount = $chwooBagCount;
 $bagTotal = $chwooBagTotal;
+// Keep the return-to-review route when the customer arrives through checkout's Edit Bag link.
 $fromCheckout = ($_GET['from'] ?? '') === 'checkout';
 $bagReturnTo = 'php/cart.php' . ($fromCheckout ? '?from=checkout' : '');
 $drawerOpen = in_array($_GET['bag'] ?? '', ['open', 'updated'], true);
@@ -45,7 +47,10 @@ if (!$drawerOpen) { $chwooBagMessage = ''; }
                         <p>Find a little something you love.</p>
                     </div>
                 <?php endif; ?>
-                <?php foreach ($bagItems as $item): ?>
+                <?php
+                // --- Shopping Bag — Current item rows, prices and stock warnings ---
+                // The shared loader supplies dollar display values; formatting here uses two decimal places.
+                foreach ($bagItems as $item): ?>
                     <article class="bag-item">
                         <a class="bag-item-image" href="product.php?id=<?= $item['product_id'] ?>">
                             <?php if ($item['image_url']): ?>
@@ -61,7 +66,9 @@ if (!$drawerOpen) { $chwooBagMessage = ''; }
                             <p>Unit price: SGD $<?= number_format($item['price'], 2) ?></p>
                             <p>Subtotal: SGD $<?= number_format($item['subtotal'], 2) ?></p>
                             <?php if ($item['availability']): ?><p role="alert"><?= e($item['availability']) ?></p><?php endif; ?>
-                            <?php chwooBagControls($item, $bagReturnTo, 'full'); ?>
+                            <?php
+                            // Full context returns here after POST, retaining the checkout-origin flag when present.
+                            chwooBagControls($item, $bagReturnTo, 'full'); ?>
                         </div>
                     </article>
                 <?php endforeach; ?>
@@ -90,9 +97,7 @@ if (!$drawerOpen) { $chwooBagMessage = ''; }
                 Shop
             </a>
 
-            <!-- ABOUT is on hold until a page is available. -->
 
-            <!-- Contact is on hold until a page is available. -->
 
             <a href="account.php?section=orders">
                 Orders

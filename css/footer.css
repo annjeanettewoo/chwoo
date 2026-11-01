@@ -1,6 +1,4 @@
-/* ========================================
-   FOOTER
-   ======================================== */
+/* Shared Footer — Branding, navigation and information in each page's footer markup. */
 
 footer {
     padding: 60px 6% 35px;
@@ -22,6 +20,7 @@ footer {
 }
 
 
+/* Footer navigation — Centred link row with a stacked layout on narrow screens. */
 .footer-links {
     display: flex;
 
@@ -47,6 +46,7 @@ footer {
 }
 
 
+/* Supporting information uses smaller type beneath the footer links. */
 footer p {
     margin: 0;
 
@@ -54,6 +54,7 @@ footer p {
 }
 
 
+/* Responsive footer — Stack links so the navigation fits narrow viewports. */
 @media (max-width: 700px) {
 
     .footer-links {

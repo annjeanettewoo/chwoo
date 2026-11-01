@@ -1,5 +1,6 @@
 <?php
-// Shared session bag data. Include before output on pages that offer the drawer.
+// Shopping Bag — Shared session lines, catalogue lookups, controls and display totals.
+// Include before page output so session cleanup and feedback are available to the page and drawer.
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/pricing.php';
@@ -8,12 +9,15 @@ function chwooEscape($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+// Return an installation-relative URL only for an existing local image; otherwise let the view show a placeholder.
 function chwooImageUrl($path, $rootUrl) {
     return preg_match('~^images/[a-zA-Z0-9_./-]+$~', $path)
         && !str_contains($path, '..') && is_file(__DIR__ . '/../' . $path)
         ? $rootUrl . $path : '';
 }
 
+// --- Shopping Bag — Shared quantity and removal controls ---
+// Render exact-variant POST actions for full bag, drawer or checkout; the handler validates their return context.
 function chwooBagControls($item, $returnTo, $context = 'drawer') {
     global $chwooRootUrl;
     $label = $item['name'] . ', ' . $item['colour'] . ', size ' . $item['size'];
@@ -35,6 +39,8 @@ function chwooBagControls($item, $returnTo, $context = 'drawer') {
     <?php
 }
 
+// --- Shopping Bag — Installation URLs and form state ---
+// Pages at the root and under php/ share one bag; allowlisted return URLs preserve relevant page selections.
 $scriptDirectory = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
 $chwooRootUrl = rtrim(basename($scriptDirectory) === 'php' ? dirname($scriptDirectory) : $scriptDirectory, '/') . '/';
 $chwooPage = basename($scriptDirectory) === 'php' ? 'php/' . basename($_SERVER['SCRIPT_NAME']) : 'index.php';
@@ -44,7 +50,10 @@ if (empty($_SESSION['chwoo_form_token'])) {
     $_SESSION['chwoo_form_token'] = bin2hex(random_bytes(16));
 }
 
-// Never guess the variant represented by an obsolete product/size/colour entry.
+// --- Shopping Bag — Validate persisted session lines ---
+// chwoo_cart[variant_id] = ['variant_id' => int, 'quantity' => positive int] persists across page requests.
+// Store no price or stock snapshot here: the current catalogue remains authoritative for those values.
+// Outfit Builder can preserve invalid entries after a rejected submission; normal loads remove them with a notice.
 $chwooBagPreserveEntries = $chwooBagPreserveEntries ?? false;
 if (!isset($_SESSION['chwoo_cart'])) {
     if (!$chwooBagPreserveEntries) { $_SESSION['chwoo_cart'] = []; }
@@ -54,9 +63,12 @@ if (!isset($_SESSION['chwoo_cart'])) {
         ? 'Please review outdated or invalid entries in your bag.'
         : 'Outdated or invalid bag entries were removed. Please select those items again.';
 }
+// Display rows combine validated session quantities with current catalogue details; count means total units.
 $chwooBagItems = [];
 $chwooBagCount = 0;
 $chwooBagTotal = 0.0;
+// --- Shopping Bag — Load current active variants and availability ---
+// Resolve product identity through variant -> colour -> product; never infer a variant from old cart formats.
 $bagStatement = $conn->prepare('SELECT v.variant_id, v.size_code, v.stock_quantity,
                                       c.colour_id, c.colour_name, c.image_path, c.price,
                                       p.product_id, p.product_name
@@ -88,6 +100,7 @@ foreach (is_array($_SESSION['chwoo_cart'] ?? null) ? $_SESSION['chwoo_cart'] : [
     $quantity = $entry['quantity'];
     $stock = (int)$row['stock_quantity'];
     $priceCents = chwooPriceCents($row['price']);
+    // Multiply integer cents before converting the line total to dollars for the existing views.
     $subtotal = $priceCents * $quantity / 100;
     $chwooBagItems[] = [
         'variant_id' => $entry['variant_id'], 'product_id' => (int)$row['product_id'],
@@ -97,6 +110,7 @@ foreach (is_array($_SESSION['chwoo_cart'] ?? null) ? $_SESSION['chwoo_cart'] : [
         'price' => (float)$row['price'], 'subtotal' => $subtotal,
         'price_cents' => $priceCents, 'image_path' => $row['image_path'],
         'image_url' => chwooImageUrl($row['image_path'], $chwooRootUrl),
+        // Keep stock-short lines visible so customers can reduce/remove them; displaying a bag reserves no stock.
         'availability' => $stock === 0 ? 'This variant is out of stock.'
             : ($quantity > $stock ? 'Only ' . $stock . ' available. Please reduce the quantity.' : '')
     ];
@@ -104,9 +118,13 @@ foreach (is_array($_SESSION['chwoo_cart'] ?? null) ? $_SESSION['chwoo_cart'] : [
     $chwooBagTotal += $subtotal;
 }
 $bagStatement->close();
+// --- Shopping Bag — Shared pricing and one-time feedback ---
+// Recompute canonical totals in cents instead of relying on the dollar subtotals accumulated above.
+// Convert only the display totals to dollars; checkout and order processing reuse the same pricing functions.
 $chwooTotals = chwooBagTotals($chwooBagItems);
 $chwooBagTotal = $chwooTotals['subtotal_cents'] / 100;
 $chwooDelivery = $chwooTotals['delivery_cents'] / 100;
 $chwooEstimatedTotal = $chwooTotals['total_cents'] / 100;
+// Consume action/cleanup notices once; the page chooses whether the full view or drawer displays them.
 $chwooBagMessage = trim(($_SESSION['chwoo_bag_flash'] ?? '') . ' ' . ($_SESSION['chwoo_cart_notice'] ?? ''));
 unset($_SESSION['chwoo_bag_flash'], $_SESSION['chwoo_cart_notice']);

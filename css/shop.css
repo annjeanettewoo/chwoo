@@ -1,4 +1,4 @@
-/* CHWOO Shop styling, loaded after header.css.
+/* Shop — Catalogue layout, category tabs, sort controls and product cards, loaded after header.css.
    Product and bag pages reuse the shared shop-page layout. */
 .shop-page { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #4B2E1F; background: #fff; }
 .shop-page * { box-sizing: border-box; }
@@ -24,6 +24,7 @@
 .shop-page .nav-tools { margin-left: auto; display: flex; align-items: center; gap: 24px; }
 .shop-page .navbar .nav-tools a.chwoo-account-link { display: block; }
 
+/* --- Shop — Catalogue introduction and content width --- */
 .shop-page .shop-main { width: 90%; max-width: 1860px; margin: 0 auto; }
 .shop-page .breadcrumb { margin: 25px 0 43px; font-size: 12px; }
 .shop-page .breadcrumb a { text-decoration: none; }
@@ -32,6 +33,7 @@
 .shop-page .shop-title { font-size: clamp(44px, 4vw, 58px); line-height: 1; font-weight: 400; margin: 15px 0 13px; letter-spacing: -2px; }
 .shop-page .shop-description { margin: 0; font-size: 14px; line-height: 1.6; }
 
+/* --- Shop — Category filters and sorting controls --- */
 .shop-page .shop-toolbar {
     display: flex; align-items: center; justify-content: space-between;
     gap: 20px; margin-top: 49px; border-bottom: 1px solid #917064;
@@ -53,6 +55,7 @@
 }
 .shop-page .sort-form button { font: inherit; color: inherit; }
 
+/* --- Shop — Product cards, image placeholders and sold-out indicators --- */
 .shop-page .shop-grid {
     display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
     column-gap: 20px; row-gap: 40px; padding: 44px 0 98px;
@@ -87,6 +90,7 @@
     .shop-page .main-nav { gap: 18px; }
     .shop-page .nav-tools { gap: 12px; }
     .shop-page .nav-tools span, .shop-page .nav-tools a:not(:last-child) { display: none; }
+    /* Shop — Two-column catalogue on compact desktop/tablet widths. */
     .shop-page .shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 15px; }
 }
 @media (max-width: 650px) {
@@ -95,6 +99,7 @@
     .shop-page .logo { width: 60px; }
     .shop-page .main-nav { display: none; }
     .shop-page .breadcrumb { margin-bottom: 35px; }
+    /* Shop — Stack filtering/sorting controls and tighten product-card spacing on mobile. */
     .shop-page .shop-toolbar { align-items: flex-start; flex-direction: column; gap: 20px; }
     .shop-page .category-tabs { gap: 6px; }
     .shop-page .category-tabs a { font-size: 11px; }

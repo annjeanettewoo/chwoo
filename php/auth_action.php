@@ -1,4 +1,5 @@
 <?php
+// Authentication — Registration, login and logout processing for ordinary CSRF-protected POST forms.
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/wishlist.php';
 
@@ -7,6 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Allow: POST');
     exit('Please use the account forms.');
 }
+// --- Authentication — Validate form token and action ---
 $token = $_POST['form_token'] ?? '';
 $action = $_POST['action'] ?? '';
 $view = $action === 'register' ? 'register' : 'login';
@@ -14,6 +16,7 @@ if (!is_string($token) || !hash_equals($_SESSION['chwoo_form_token'], $token)) {
     chwooAuthRedirect('', ['form' => 'Please refresh this page and try again.'], [], $view);
 }
 if ($action === 'logout') {
+    // Clear identity and account/purchase intents without destroying the session bag or shared form token.
     unset($_SESSION['chwoo_customer'], $_SESSION['chwoo_pending_wishlist_product_id'],
         $_SESSION['chwoo_pending_wishlist_return_to'], $_SESSION['chwoo_checkout_login'], $_SESSION['chwoo_orders_login'],
         $_SESSION['chwoo_checkout'], $_SESSION['chwoo_checkout_feedback'], $_SESSION['chwoo_purchase'],
@@ -25,17 +28,20 @@ if (!in_array($action, ['register', 'login'], true)) {
     chwooAuthRedirect('', ['form' => 'Please choose a valid account action.']);
 }
 if (chwooCurrentCustomer()) {
+    // An already signed-in customer may still have a pending wishlist save to complete before redirecting.
     if (isset($_SESSION['chwoo_pending_wishlist_product_id'])) {
         require_once __DIR__ . '/db.php';
         chwooWishlistAfterAuthentication($conn);
     }
     chwooAuthAccount('You are already logged in.');
 }
+// --- Registration / Login — Validate submitted credentials ---
 // Treat array-shaped submissions as missing fields, rather than PHP type errors.
 $email = is_string($_POST['email'] ?? null) ? $_POST['email'] : '';
 $submittedPassword = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
 $fullName = is_string($_POST['full_name'] ?? null) ? $_POST['full_name'] : '';
 $confirmation = is_string($_POST['confirm_password'] ?? null) ? $_POST['confirm_password'] : '';
+// Retain bounded action/email/name feedback only; never include either password in redirect state.
 $old = ['action' => $action, 'email' => substr($email, 0, 190)];
 $errors = [];
 $emailPattern = '/\A[A-Za-z0-9!#$%&\x27*+\/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&\x27*+\/=?^_`{|}~-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}\z/D';
@@ -76,8 +82,10 @@ if ($action === 'register') {
 if ($errors) { chwooAuthRedirect('', $errors, $old, $view); }
 
 require __DIR__ . '/db.php';
+// --- Registration / Login — Persist or verify the account ---
 try {
     if ($action === 'register') {
+        // Store PHP's password hash, not the submitted password; the unique email index rejects duplicates.
         $hash = password_hash($submittedPassword, PASSWORD_DEFAULT);
         $stmt = $conn->prepare('INSERT INTO customers (full_name, email, password_hash) VALUES (?, ?, ?)');
         $stmt->bind_param('sss', $fullName, $email, $hash);
@@ -85,9 +93,11 @@ try {
         $customer = ['customer_id' => $conn->insert_id, 'full_name' => $fullName];
         $stmt->close();
         chwooAuthenticate($customer);
+        // Regenerated session identity retains guest shopping state and can complete the pending product save.
         chwooWishlistAfterAuthentication($conn);
         chwooAuthAccount('Welcome to CHWOO. Your account has been created.');
     }
+    // Login verifies the stored hash; missing accounts and wrong passwords share the same failure message.
     $stmt = $conn->prepare('SELECT customer_id, full_name, password_hash FROM customers WHERE email = ? LIMIT 1');
     $stmt->bind_param('s', $email);
     $stmt->execute();

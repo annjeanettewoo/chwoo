@@ -1,19 +1,24 @@
 <?php
-// Product-level, account-linked favourites. No catalogue or bag data is copied.
+// Wishlist — Customer-owned product favourites in MySQL, shared forms and post-login save completion.
+// Stored favourites are product-level; session state holds only pending guest intent, not the persisted wishlist.
 require_once __DIR__ . '/auth.php';
 header('Cache-Control: no-store');
 
+// --- Wishlist — Validate catalogue/customer identities ---
+// Accept scalar integer IDs within the database's unsigned-INT range; reject array-shaped form values.
 function chwooWishlistId($value) {
     return (is_string($value) || is_int($value))
         ? filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 4294967295]])
         : false;
 }
 
+// Derive the owner from session identity rather than a submitted customer ID.
 function chwooWishlistCustomerId() {
     $customer = chwooCurrentCustomer();
     return is_array($customer) ? chwooWishlistId($customer['customer_id'] ?? null) : false;
 }
 
+// A deleted account must not continue writing favourites through a stale session identity.
 function chwooWishlistCustomerExists($conn, $customerId) {
     $stmt = $conn->prepare('SELECT customer_id FROM customers WHERE customer_id = ?');
     $stmt->bind_param('i', $customerId);
@@ -23,6 +28,8 @@ function chwooWishlistCustomerExists($conn, $customerId) {
     return $exists;
 }
 
+// --- Wishlist — Persist an explicit save/remove action ---
+// Apply a caller-validated action for the given owner and product; return customer-facing result text.
 function chwooWishlistChange($conn, $customerId, $productId, $action) {
     if ($action === 'remove') {
         $stmt = $conn->prepare('SELECT product_id FROM products WHERE product_id = ?');
@@ -38,7 +45,8 @@ function chwooWishlistChange($conn, $customerId, $productId, $action) {
         $stmt->close();
         return 'Removed from your wishlist.';
     }
-    // INSERT ... SELECT checks current availability; the unique key makes saves idempotent.
+    // Save only active products with a colour; size stock is not required or reserved by a wishlist save.
+    // The customer/product unique key makes repeated saves idempotent instead of toggling the favourite off.
     $stmt = $conn->prepare('INSERT INTO wishlist (customer_id, product_id)
         SELECT ?, p.product_id FROM products AS p
         WHERE p.product_id = ? AND p.is_active = 1
@@ -59,6 +67,8 @@ function chwooWishlistChange($conn, $customerId, $productId, $action) {
     return $saved ? 'Saved to your wishlist.' : 'This piece is no longer available to save.';
 }
 
+// --- Wishlist — Read saved heart state and account cards ---
+// Return a product-ID set ([] for guests/no favourites), or null with an error when database state is unknown.
 function chwooWishlistIds($conn, &$error) {
     $error = '';
     $customerId = chwooWishlistCustomerId();
@@ -77,6 +87,7 @@ function chwooWishlistIds($conn, &$error) {
     }
 }
 
+// Return newest-first customer favourites joined to today's catalogue; inactive/no-colour products remain removable.
 function chwooWishlistItems($conn, $customerId) {
     // Use the current default colour (or first remaining colour), never a saved price.
     $stmt = $conn->prepare('SELECT p.product_id, p.product_name, p.is_active,
@@ -99,6 +110,9 @@ function chwooWishlistNotice($error) {
     }
 }
 
+// --- Wishlist — Shared product heart and Account removal forms ---
+// Render an explicit save/remove POST action; unknown state disables the button and size validation is bypassed.
+// text selects the Account removal label instead of the Product Details heart icon.
 function chwooWishlistButton($product, $ids, $text = false) {
     $saved = isset($ids[(int)$product['product_id']]);
     $label = ($saved ? 'Remove ' : 'Save ') . $product['product_name']
@@ -118,6 +132,7 @@ function chwooWishlistButton($product, $ids, $text = false) {
     <?php
 }
 
+// Wrap the shared button with CSRF/product/return fields for standalone Account controls.
 function chwooWishlistForm($product, $ids, $returnTo, $text = false) {
     ?>
     <form method="post" action="<?= chwooAuthEscape(chwooAuthRootUrl()) ?>php/wishlist_action.php"
@@ -130,17 +145,20 @@ function chwooWishlistForm($product, $ids, $returnTo, $text = false) {
     <?php
 }
 
+// Redirect after POST with shared feedback; revalidate the internal return destination before using it.
 function chwooWishlistRedirect($returnTo, $message) {
     $_SESSION['chwoo_auth_notice'] = $message;
     header('Location: ' . chwooAuthRootUrl() . chwooReturnTo($returnTo, 'php/shop.php'), true, 303);
     exit;
 }
 
+// --- Wishlist — Complete one pending guest save after authentication ---
+// A failed save reports feedback without undoing successful authentication.
 function chwooWishlistAfterAuthentication($conn) {
     if (!isset($_SESSION['chwoo_pending_wishlist_product_id'])) { return; }
     $productId = chwooWishlistId($_SESSION['chwoo_pending_wishlist_product_id']);
     $returnTo = chwooReturnTo($_SESSION['chwoo_pending_wishlist_return_to'] ?? '', 'php/shop.php');
-    // Consume once. A repeated login must never toggle a saved product off.
+    // Consume pending product/destination before saving so later logins cannot replay the intent.
     unset($_SESSION['chwoo_pending_wishlist_product_id'], $_SESSION['chwoo_pending_wishlist_return_to']);
     $message = 'This piece is no longer available to save.';
     if ($productId && ($customerId = chwooWishlistCustomerId())) {
@@ -151,7 +169,7 @@ function chwooWishlistAfterAuthentication($conn) {
         }
     }
     unset($_SESSION['chwoo_auth_feedback']);
-    // Save the favourite, then honor checkout or a later Orders sign-in intent.
+    // Checkout/Orders sign-in flags take priority over the original product return after completing the save.
     if (!empty($_SESSION['chwoo_checkout_login']) || !empty($_SESSION['chwoo_orders_login'])) {
         chwooAuthAccount($message);
     }

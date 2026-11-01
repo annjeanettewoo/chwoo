@@ -1,6 +1,5 @@
 <?php
-// CHWOO Homepage | IE4727 Base Version
-// Preserve the original CHWOO homepage design; only the four product cards load from MySQL.
+// Homepage — Brand introduction and database-backed New In product preview.
 require_once __DIR__ . '/php/auth.php';
 require_once __DIR__ . '/php/bag.php';
 
@@ -9,6 +8,8 @@ function e($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+// --- Homepage — Retrieve featured New In products ---
+// Higher product IDs represent newer arrivals; show one default colour per active product.
 // Preview the latest four active products, using the same order as New In.
 // The full active catalogue remains available in php/shop.php.
 $sql = 'SELECT p.product_id, p.product_name, c.price, c.image_path
@@ -22,6 +23,7 @@ $stmt = $conn->prepare($sql);
 $stmt->execute();
 $result = $stmt->get_result();
 $newArrivals = [];
+// Build display rows with validated local image URLs; missing photos use the rendered placeholder.
 while ($product = $result->fetch_assoc()) {
     $path = ltrim((string)$product['image_path'], '/\\');
     $safePath = preg_match('~^images/[a-zA-Z0-9_./-]+$~', $path)
@@ -31,7 +33,7 @@ while ($product = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-// Use the same cart session as php/product.php and php/cart.php.
+// The shared bag loader supplies the header count; this page maintains no separate cart state.
 $bagCount = $chwooBagCount;
 ?>
 <!DOCTYPE html>
@@ -111,7 +113,7 @@ $bagCount = $chwooBagCount;
 
             <div class="product-grid">
 
-                <!-- The product cards now come directly from MySQL. -->
+                <!-- Homepage — New In product cards. -->
                 <?php foreach ($newArrivals as $product): ?>
                     <article class="product-card">
 
@@ -167,7 +169,6 @@ $bagCount = $chwooBagCount;
                 everything in between.
             </p>
 
-            <!-- Our Story is on hold until an About page is available. -->
         </section>
 
     </main>
@@ -188,9 +189,7 @@ $bagCount = $chwooBagCount;
                 Shop
             </a>
 
-            <!-- ABOUT is on hold until a page is available. -->
 
-            <!-- Contact is on hold until a page is available. -->
 
             <a href="php/account.php?section=orders">
                 Orders

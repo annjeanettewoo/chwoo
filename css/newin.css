@@ -1,7 +1,6 @@
-/* CHWOO New In — minimal extension to original homepage styles.
-   Existing base.css, header.css, home.css, footer.css are NOT changed. */
+/* New In — Page heading, product-card alignment and missing-photo presentation over home.css. */
 
-/* Match the homepage's original "New In at CHWOO" h2 heading dimensions. */
+/* --- New In — Page heading sized to match the homepage preview --- */
 .newin-page .section-heading .newin-title {
     margin-top: 10px;
     margin-bottom: 50px;
@@ -9,12 +8,13 @@
     font-weight: normal;
 }
 
-/* Wrapped names share the same price baseline within each grid row. */
+/* --- New In — Product-card text alignment --- */
+/* Flexible name space keeps prices aligned when names wrap within a grid row. */
 .newin-page .product-card { display: flex; flex-direction: column; min-width: 0; }
 .newin-page .product-card > a { display: block; }
 .newin-page .product-card h3 { flex: 1; }
 
-/* Keep the original 3:4 product grid if a database photo is missing. */
+/* --- New In — Preserve the 3:4 card frame when a catalogue image is missing --- */
 .newin-page .product-photo-placeholder {
     aspect-ratio: 3 / 4;
     display: flex;
@@ -27,6 +27,7 @@
     text-align: center;
 }
 
+/* --- New In — Mobile heading adjustment (up to 700px) --- */
 @media (max-width: 700px) {
     .newin-page .section-heading .newin-title {
         font-size: 32px;

@@ -1,18 +1,21 @@
 <?php
-// CHWOO Shop | MySQL-powered catalogue, original CHWOO layout
+// Shop — Active product catalogue with category filtering, sorting and stock indicators.
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/bag.php';
 
 // Show the number of items currently saved in the session bag.
 $bagCount = $chwooBagCount;
 
-// Only known category and sort values can affect the SQL query.
+// --- Shop — Apply category filters and product sorting ---
+// Unknown categories fall back to All; only catalogue categories can reach the bound filter.
 $categories = ['All', 'Tops', 'Bottoms', 'Dresses'];
 $category = $_GET['category'] ?? 'All';
 if (!in_array($category, $categories, true)) {
     $category = 'All';
 }
 
+// SQL column/order expressions cannot be bound as values; select only predefined expressions.
+// Product-ID tie-breaks keep equal-price/name results in a consistent order.
 $sortOptions = [
     'featured'   => 'p.product_id ASC',
     'price_asc'  => 'c.price ASC, p.product_id ASC',
@@ -24,7 +27,9 @@ if (!is_string($sort) || !array_key_exists($sort, $sortOptions)) {
     $sort = 'featured';
 }
 
-// Display the default colour; availability includes inventory across all colours and sizes.
+// --- Shop — Retrieve one card per product ---
+// The default colour supplies the card image/price; separate joins sum stock across every colour/size.
+// This is catalogue stock, not a reservation or an exact size's remaining bag allowance.
 $sql = 'SELECT p.product_id, p.product_name, p.category, c.price, c.image_path,
                COALESCE(SUM(v.stock_quantity), 0) AS stock_quantity
         FROM products AS p
@@ -50,6 +55,7 @@ function e($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+// Category-tab links retain the chosen sort order using encoded query parameters.
 function shopUrl($category, $sort) {
     return 'shop.php?' . http_build_query(['category' => $category, 'sort' => $sort]);
 }
@@ -108,7 +114,8 @@ function shopUrl($category, $sort) {
             <section class="shop-grid" aria-label="CHWOO products">
                 <?php while ($product = $products->fetch_assoc()): ?>
                     <?php
-                    // DB stores paths relative to the chwoo root, e.g. images/newin1.jpg.
+                    // --- Shop — Render product cards and missing-photo states ---
+                    // Database paths are rooted under images/; reject traversal and absent files before rendering.
                     $imagePath = ltrim((string)$product['image_path'], '/\\');
                     $safePath = preg_match('~^images/[a-zA-Z0-9_./-]+$~', $imagePath)
                                 && strpos($imagePath, '..') === false;
@@ -152,9 +159,7 @@ function shopUrl($category, $sort) {
                 Shop
             </a>
 
-            <!-- ABOUT is on hold until a page is available. -->
 
-            <!-- Contact is on hold until a page is available. -->
 
             <a href="account.php?section=orders">
                 Orders

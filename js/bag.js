@@ -1,16 +1,21 @@
-// Progressive enhancement: BAG remains an ordinary link without JavaScript.
+// Bag Drawer — Opening/closing, keyboard focus, background interaction and post-redirect restoration.
+// PHP renders quantities, prices and POST controls; this script does not update cart contents or totals.
+// BAG remains an ordinary full-page link without JavaScript.
 (function () {
     const drawer = document.getElementById('chwoo-bag-drawer');
     const overlay = document.getElementById('chwoo-bag-overlay');
     if (!drawer || !overlay) { return; }
     const triggers = document.querySelectorAll('[data-bag-trigger]');
     const closeButton = drawer.querySelector('.chwoo-bag-close');
+    // Remember the page's focus, scroll style and each element's inert state so closing restores them.
     let previousFocus = null;
     let previousOverflow = '';
     let background = [];
     let hideTimer;
     let isOpen = false;
 
+    // --- Bag Drawer — Open and isolate the dialog ---
+    // Used by header triggers and PHP-requested opening states; cancel a pending hide when reopening.
     function openBag() {
         if (isOpen) { return; }
         isOpen = true;
@@ -33,6 +38,8 @@
         triggers.forEach(function (trigger) { trigger.setAttribute('aria-expanded', 'true'); });
     }
 
+    // --- Bag Drawer — Close and restore the page ---
+    // Restore prior focus (or a BAG trigger) and wait for the slide-out before hiding the overlay.
     function closeBag() {
         if (!isOpen) { return; }
         isOpen = false;
@@ -48,6 +55,8 @@
         hideTimer = setTimeout(function () { overlay.hidden = true; }, 300);
     }
 
+    // --- Bag Drawer — Trigger, overlay and keyboard interactions ---
+    // Modified link clicks retain native browser navigation instead of opening the dialog.
     triggers.forEach(function (trigger) {
         trigger.setAttribute('aria-haspopup', 'dialog');
         trigger.setAttribute('aria-controls', drawer.id);
@@ -66,6 +75,7 @@
             closeButton.focus();
         }
     });
+    // Escape closes the dialog; Tab/Shift+Tab wrap through its links and enabled buttons.
     document.addEventListener('keydown', function (event) {
         if (!drawer.classList.contains('is-open')) { return; }
         if (event.key === 'Escape') { closeBag(); }
@@ -78,6 +88,8 @@
             else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
         }
     });
+    // --- Bag Drawer — Restore server-rendered state after navigation ---
+    // Quantity/removal forms use ordinary POST/redirects; PHP supplies fresh lines and data-resume/data-open.
     if (drawer.dataset.resume === 'true') {
         // PHP rendered the updated drawer open. Initialise focus/inert immediately,
         // then restore transitions only after that open state has been painted.

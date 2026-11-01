@@ -1,5 +1,6 @@
 <?php
-// Styling board with ordinary POST integration into the shared shopping bag.
+// Outfit Builder — Catalogue, styling board and controls for the shared shopping bag.
+// This page renders selections; outfit_action.php validates and adds submitted variants.
 if (!in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true)) {
     http_response_code(405);
     header('Allow: GET, HEAD');
@@ -14,7 +15,8 @@ require_once __DIR__ . '/bag.php';
 header('Cache-Control: no-store');
 $outfitRoot = chwooAuthRootUrl();
 
-// Availability includes quantities already in the shared bag.
+// --- Outfit Builder — Catalogue and variant availability ---
+// Subtract exact variants already in the bag; previewing pieces does not reserve stock.
 $outfitQuantities = array_column($chwooBagItems, 'quantity', 'variant_id');
 
 // One query supplies real product, colour and size identities, including sold-out options.
@@ -30,6 +32,7 @@ $statement = $conn->prepare("SELECT p.product_id, p.product_name, p.category,
     ORDER BY p.product_id, c.is_default DESC, c.colour_id, s.sort_order, v.variant_id");
 $statement->execute();
 $result = $statement->get_result();
+// Group joined rows as products -> colours (image/price) -> size variants (stock).
 while ($row = $result->fetch_assoc()) {
     $productId = (int)$row['product_id'];
     if (!isset($products[$productId])) {
@@ -39,6 +42,7 @@ while ($row = $result->fetch_assoc()) {
     if ($row['colour_id'] === null) { continue; }
     $colourId = (int)$row['colour_id'];
     if (!isset($products[$productId]['colours'][$colourId])) {
+        // Expose only existing local images; an empty URL activates the unavailable message.
         $path = (string)$row['image_path'];
         $hasImage = preg_match('~^images/[a-zA-Z0-9_./-]+$~D', $path)
             && !str_contains($path, '..') && is_file(__DIR__ . '/../' . $path);
@@ -61,11 +65,14 @@ $statement->close();
 foreach ($products as &$product) { $product['colours'] = array_values($product['colours']); }
 unset($product);
 $products = array_values($products);
+// --- Outfit Builder — Slot defaults and submitted selection restoration ---
+// Slot keys link PHP controls to JavaScript state; category filtering retains query order.
 $slots = [
     'top' => ['label' => 'Top', 'category' => 'Tops', 'number' => '01'],
     'bottom' => ['label' => 'Bottom', 'category' => 'Bottoms', 'number' => '02'],
     'dress' => ['label' => 'Dress', 'category' => 'Dresses', 'number' => '01']
 ];
+// The POST handler retains IDs only; resolve them against the current catalogue below.
 $draft = $_SESSION['chwoo_outfit_draft'] ?? [];
 $outfitMode = ($draft['mode'] ?? '') === 'dress' ? 'dress' : 'separates';
 $outfitError = $_SESSION['chwoo_outfit_error'] ?? '';
@@ -78,6 +85,7 @@ foreach ($slots as $key => &$slot) {
     $slot['initial'] = $slot['products'][0] ?? null;
     $slot['colour'] = $slot['initial']['colours'][0] ?? null;
     $slot['variant'] = null;
+    // A submitted empty/removed selection must not silently revert to the starting look.
     if (array_key_exists($key . '_product', $draft)) {
         $slot['initial'] = null;
         $slot['colour'] = null;
@@ -93,6 +101,7 @@ foreach ($slots as $key => &$slot) {
     }
 }
 unset($slot);
+// Only visible-mode pieces contribute to the initial subtotal and enabled form fields.
 $activeSlots = $outfitMode === 'dress' ? ['dress'] : ['top', 'bottom'];
 $initialTotal = array_sum(array_map(fn($key) => $slots[$key]['colour']['priceCents'] ?? 0, $activeSlots));
 ?>
@@ -126,7 +135,10 @@ $initialTotal = array_sum(array_map(fn($key) => $slots[$key]['colour']['priceCen
                 <div class="outfit-board" id="styling-board" data-mode="<?= $outfitMode ?>">
                     <p class="outfit-board-note" aria-hidden="true"><span data-board-lead><?= $outfitMode === 'dress' ? 'a whole look' : 'a little better' ?></span><br><em data-board-emphasis><?= $outfitMode === 'dress' ? 'in one.' : 'together.' ?></em></p>
                     <div class="outfit-canvas">
-                    <?php foreach ($slots as $key => $slot): ?>
+                    <?php
+                    // --- Outfit Builder — Styling board previews ---
+                    // Render all slots once; JavaScript toggles their visibility and updates data-* targets.
+                    foreach ($slots as $key => $slot): ?>
                     <figure class="outfit-photo outfit-photo-<?= $key ?>" data-preview="<?= $key ?>" <?= !in_array($key, $activeSlots, true) ? 'hidden' : '' ?>>
                         <div class="outfit-photo-bar"><span><?= $slot['number'] ?> / <?= strtoupper($slot['label']) ?></span><button type="button" data-remove="<?= $key ?>" aria-label="Remove <?= strtolower($slot['label']) ?> from styling board" <?= !$slot['initial'] ? 'hidden' : '' ?>>&times;</button></div>
                         <div class="outfit-garment-row">
@@ -155,7 +167,10 @@ $initialTotal = array_sum(array_map(fn($key) => $slots[$key]['colour']['priceCen
                     <label><input type="radio" name="outfit_mode" value="separates" <?= $outfitMode === 'separates' ? 'checked' : '' ?>><span>TOP + BOTTOM</span></label>
                     <label><input type="radio" name="outfit_mode" value="dress" <?= $outfitMode === 'dress' ? 'checked' : '' ?>><span>DRESS</span></label>
                 </fieldset>
-                <?php foreach ($slots as $key => $slot): ?>
+                <?php
+                // --- Outfit Builder — Product, colour and size controls ---
+                // Inactive-mode fieldsets are disabled so their selections are excluded from POST.
+                foreach ($slots as $key => $slot): ?>
                 <fieldset class="outfit-piece" data-slot="<?= $key ?>" <?= !in_array($key, $activeSlots, true) ? 'hidden disabled' : '' ?>>
                     <legend><span><?= $slot['number'] ?></span> The <?= strtolower($slot['label']) ?></legend>
                     <label class="outfit-sr-only" for="outfit-<?= $key ?>">Choose your <?= strtolower($slot['label']) ?></label>
@@ -199,7 +214,11 @@ $initialTotal = array_sum(array_map(fn($key) => $slots[$key]['colour']['priceCen
     <footer><div class="footer-logo">CHWOO</div><div class="footer-links"><a href="shop.php">Shop</a><a href="account.php">Your Account</a></div><p>&copy; 2026 CHWOO Fashion Studio</p></footer>
     <!-- One compact catalogue for all three slots; data stays ordinary, escaped HTML. -->
     <div id="outfit-catalogue" hidden>
-        <?php foreach ($products as $product): ?>
+        <?php
+        // --- Outfit Builder — PHP catalogue data for JavaScript ---
+        // Escaped data-* attributes carry ordered identities, colour prices and remaining quantities.
+        // The browser uses this snapshot for interaction; the POST handler rechecks live stock.
+        foreach ($products as $product): ?>
         <div data-product-id="<?= chwooAuthEscape($product['id']) ?>" data-name="<?= chwooAuthEscape($product['name']) ?>" data-category="<?= chwooAuthEscape($product['category']) ?>">
             <?php foreach ($product['colours'] as $colour): ?>
             <div data-colour-id="<?= chwooAuthEscape($colour['id']) ?>" data-name="<?= chwooAuthEscape($colour['name']) ?>" data-swatch="<?= chwooAuthEscape($colour['swatch'] ?? '') ?>" data-image="<?= chwooAuthEscape($colour['image']) ?>" data-price-cents="<?= chwooAuthEscape($colour['priceCents']) ?>">
